@@ -87,6 +87,11 @@ def run_semgrep_rules(clone_dir: str) -> list[CheckResult]:
 	cmd = [
 		*prefix,
 		"scan",
+		# Semgrep's default auto-parallelism can spin indefinitely on high-core ARM
+		# workers. A single job is deterministic and avoids exhausting the audit
+		# timeout while still scanning marketplace apps quickly.
+		"--jobs",
+		"1",
 		"--config",
 		str(RULES_DIR.resolve()),
 		"--json",

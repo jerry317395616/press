@@ -8,6 +8,7 @@ import hashlib
 import hmac
 import json
 import re
+import time
 from base64 import b64decode, urlsafe_b64decode, urlsafe_b64encode
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -151,16 +152,44 @@ def get_access_token(installation_id: str | None = None):
 			"github_access_token",
 		)
 
-	token = get_jwt_token()
-	headers = {
-		"Authorization": f"Bearer {token}",
-		"Accept": "application/vnd.github.machine-man-preview+json",
-	}
-	response = requests.post(
-		f"https://api.github.com/app/installations/{installation_id}/access_tokens",
-		headers=headers,
-	).json()
-	return response.get("token")
+	cache_key = f"github_app_installation_token:{installation_id}"
+	if cached_token := frappe.cache().get_value(cache_key):
+		return cached_token
+
+	last_error = None
+	for attempt in range(4):
+		try:
+			token = get_jwt_token()
+			headers = {
+				"Authorization": f"Bearer {token}",
+				"Accept": "application/vnd.github+json",
+				"X-GitHub-Api-Version": "2022-11-28",
+			}
+			response = requests.post(
+				f"https://api.github.com/app/installations/{installation_id}/access_tokens",
+				headers=headers,
+				timeout=(10, 30),
+			)
+			response.raise_for_status()
+			access_token = response.json().get("token")
+			if not access_token:
+				raise GithubFetchError("GitHub did not return an installation token")
+
+			frappe.cache().set_value(
+				cache_key,
+				access_token,
+				expires_in_sec=50 * 60,
+			)
+			return access_token
+		except (requests.RequestException, ValueError, GithubFetchError) as exc:
+			last_error = exc
+			if attempt < 3:
+				time.sleep(2**attempt)
+
+	raise GithubFetchError(
+		f"Unable to fetch GitHub installation token after 4 attempts: "
+		f"{type(last_error).__name__}"
+	) from last_error
 
 
 @frappe.whitelist()
@@ -180,12 +209,89 @@ def options(redirect_url: str | None = None):
 	team = get_current_team()
 	token = frappe.db.get_value("Team", team, "github_access_token")
 	installation_data = get_installation_data(team, redirect_url)
+	available_installations = installations(token) if token else []
+	if not available_installations and frappe.conf.get("github_app_installation_fallback"):
+		available_installations = app_installations()
 
 	return {
-		"authorized": bool(token),
+		"authorized": bool(token or available_installations),
 		**installation_data,
-		"installations": installations(token) if token else [],
+		"installations": available_installations,
 	}
+
+
+def app_installations():
+	token = get_jwt_token()
+	headers = {
+		"Authorization": f"Bearer {token}",
+		"Accept": "application/vnd.github+json",
+	}
+	github_installations = []
+	current_page, is_last_page = 1, False
+	while not is_last_page:
+		response = requests.get(
+			"https://api.github.com/app/installations",
+			params={"per_page": 100, "page": current_page},
+			headers=headers,
+		)
+		data = response.json()
+		if not response.ok:
+			frappe.throw(
+				"Error fetching app installations from GitHub: "
+				+ data.get("message", "Unknown error")
+			)
+		if len(data) < 100:
+			is_last_page = True
+		github_installations.extend(data)
+		current_page += 1
+
+	return [
+		{
+			"id": installation["id"],
+			"login": installation["account"]["login"],
+			"url": installation["html_url"],
+			"image": installation["account"]["avatar_url"],
+			"repos": app_installation_repositories(installation["id"]),
+		}
+		for installation in github_installations
+	]
+
+
+def app_installation_repositories(installation_id: int):
+	token = get_access_token(str(installation_id))
+	headers = {
+		"Authorization": f"Bearer {token}",
+		"Accept": "application/vnd.github+json",
+	}
+	repositories = []
+	current_page, is_last_page = 1, False
+	while not is_last_page:
+		response = requests.get(
+			"https://api.github.com/installation/repositories",
+			params={"per_page": 100, "page": current_page},
+			headers=headers,
+		)
+		data = response.json()
+		if not response.ok:
+			frappe.throw(
+				"Error fetching installation repositories from GitHub: "
+				+ data.get("message", "Unknown error")
+			)
+		page_repositories = data.get("repositories", [])
+		if len(page_repositories) < 100:
+			is_last_page = True
+		for repository in page_repositories:
+			repositories.append(
+				{
+					"id": repository["id"],
+					"name": repository["name"],
+					"private": repository["private"],
+					"url": repository["html_url"],
+					"default_branch": repository["default_branch"],
+				}
+			)
+		current_page += 1
+	return repositories
 
 
 def get_safe_github_redirect_url(redirect_url: str | None = None) -> str:

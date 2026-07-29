@@ -140,10 +140,9 @@ RUN curl -fsSL https://code-server.dev/install.sh | sh `#stage-pre-code-server`
 {% endif %}
 
 # Install Fonts
-RUN git clone --progress --depth 1 https://github.com/frappe/fonts.git /tmp/fonts \
-  && rm -rf /etc/fonts && mv /tmp/fonts/etc_fonts /etc/fonts \
-  && rm -rf /usr/share/fonts && mv /tmp/fonts/usr_share_fonts /usr/share/fonts \
-  && rm -rf /tmp/fonts \
+RUN --mount=type=cache,sharing=locked,target=/var/cache/apt apt-get update \
+  && apt-get install --yes --no-install-recommends fonts-noto-cjk \
+  && rm -rf /var/lib/apt/lists/* \
   && fc-cache -fv \
   `#stage-pre-fonts`
 
@@ -194,19 +193,20 @@ USER frappe
 WORKDIR /home/frappe
 
 
-# Install Node using NVM
+# Install the official Node binary in the NVM-compatible path.
 ENV NVM_DIR /home/frappe/.nvm
 ENV {{ doc.get_dependency_version("nvm", True) }}
 ENV {{ doc.get_dependency_version("node", True) }}
+{% if is_arm_build %}
+ENV NODE_ARCH arm64
+{% else %}
+ENV NODE_ARCH x64
+{% endif %}
 
-RUN wget https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh \
-  && bash install.sh \
-  && . "/home/frappe/.nvm/nvm.sh" \
-  && nvm install ${NODE_VERSION} \
-  && nvm use v${NODE_VERSION} \
-  && nvm alias default v${NODE_VERSION} \
-  && rm install.sh \
-  && nvm cache clear \
+RUN mkdir -p "${NVM_DIR}/versions/node/v${NODE_VERSION}" \
+  && wget --progress=dot:giga "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" -O /tmp/node.tar.xz \
+  && tar -xJf /tmp/node.tar.xz --strip-components=1 -C "${NVM_DIR}/versions/node/v${NODE_VERSION}" \
+  && rm /tmp/node.tar.xz \
   `#stage-pre-node`
 
 ENV PATH "$PATH:/home/frappe/.nvm/versions/node/v${NODE_VERSION}/bin"
@@ -261,14 +261,22 @@ COPY --chown=frappe:frappe common_site_config.json /home/frappe/frappe-bench/sit
 
 # Prebundle headless Chromium for the Chrome-based PDF generator (frappe.utils.chromium)
 RUN --mount=type=cache,sharing=locked,id=chromium-{% if is_arm_build %}arm64{% else %}x86_64{% endif %},target=/home/frappe/chromium-cache,uid=1000,gid=1000 \
+  : `#stage-setup-chromium`; \
   if [ -n "$(ls -A /home/frappe/chromium-cache 2>/dev/null)" ]; then \
   mkdir -p /home/frappe/frappe-bench/chromium \
   && cp -a /home/frappe/chromium-cache/. /home/frappe/frappe-bench/chromium/; \
   elif bench setup-chrome --help > /dev/null 2>&1; then \
-  bench setup-chrome \
-  && cp -a /home/frappe/frappe-bench/chromium/. /home/frappe/chromium-cache/; \
-  else echo "bench setup-chrome unavailable on this Frappe version; skipping Chromium prebundle"; fi \
-  `#stage-setup-chromium`
+  chromium_ready=0; \
+  for attempt in 1 2; do \
+  if bench setup-chrome; then chromium_ready=1; break; fi; \
+  echo "Chromium prebundle attempt ${attempt} failed; retrying"; \
+  rm -rf /home/frappe/frappe-bench/chromium; \
+  sleep 5; \
+  done; \
+  if [ "${chromium_ready}" -eq 1 ]; then \
+  cp -a /home/frappe/frappe-bench/chromium/. /home/frappe/chromium-cache/; \
+  else echo "Chromium prebundle unavailable; runtime PDF setup remains enabled"; fi; \
+  else echo "bench setup-chrome unavailable on this Frappe version; skipping Chromium prebundle"; fi
 
 # Install other apps
 {% for app in doc.apps %}

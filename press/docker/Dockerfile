@@ -286,7 +286,7 @@ RUN --mount=type=cache,sharing=locked,id=chromium-{% if is_arm_build %}arm64{% e
 {% if app.use_cached and use_asset_store %}
 RUN --mount=type=bind,source=apps/{{ app.app }},target=/home/frappe/context/apps/{{ app.app }} \
   --mount=type=secret,id=build_token,mode=0444 \
-  BUILD_TOKEN="$(cat /run/secrets/build_token)" && python${PYTHON_VERSION} /usr/local/bin/get_cached_app.py \
+  BUILD_TOKEN="$(cat /run/secrets/build_token)" && SKIP_YARN_COREPACK_CHECK=1 python${PYTHON_VERSION} /usr/local/bin/get_cached_app.py \
   {{ app.app }} \
   {{ app.hash }} \
   "$BUILD_TOKEN" \
@@ -296,7 +296,7 @@ RUN --mount=type=bind,source=apps/{{ app.app }},target=/home/frappe/context/apps
 {% else %}
 RUN --mount=type=cache,sharing=locked,target=/home/frappe/.cache,uid=1000,gid=1000 \
   --mount=type=bind,source=apps/{{ app.app }},target=/home/frappe/context/apps/{{ app.app }} \
-  bench get-app file:///home/frappe/context/apps/{{ app.app }} \
+  SKIP_YARN_COREPACK_CHECK=1 bench get-app file:///home/frappe/context/apps/{{ app.app }} \
   `#stage-apps-{{ app.app }}`
 {% endif %}
 

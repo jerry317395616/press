@@ -562,7 +562,7 @@ def _get_compatible_frappe_version_from_pyproject(
 	owner: str, repository: str, branch_info: dict, headers: dict[str, str]
 ) -> str:
 	"""Get frappe version from pyproject.toml file."""
-	compatible_frappe_version = None
+	compatible_frappe_version: str | None = None
 	pyproject = requests.get(
 		f"https://api.github.com/repos/{owner}/{repository}/contents/pyproject.toml",
 		params={"ref": branch_info["name"]},
@@ -597,7 +597,7 @@ def _get_compatible_frappe_version_from_pyproject(
 		frappe.throw(out_s)
 
 	with contextlib.suppress(Exception):
-		compatible_frappe_version = str(
+		compatible_frappe_version = (
 			pyproject.get("tool", {})
 			.get("bench", {})
 			.get("frappe-dependencies", {})
@@ -608,7 +608,7 @@ def _get_compatible_frappe_version_from_pyproject(
 
 	if not compatible_frappe_version:
 		frappe.throw(
-			"Could not find compatible Frappe version in pyproject.toml file. "
+			f"Could not find a compatible Frappe version in pyproject.toml for app '{repository}'. "
 			"Please ensure '[tool.bench.frappe-dependencies]' is defined. "
 			"Click <a class='underline' href='https://docs.frappe.io/cloud/benches/custom-app#note'>here</a> for more details."
 		)

@@ -42,6 +42,23 @@ from .team_members import get_invitations, get_roles
 if TYPE_CHECKING:
 	from press.press.doctype.account_request.account_request import AccountRequest
 
+# Credits a team has to hold before it may buy a server, unless servers have
+# been enabled for it outright. Currencies not listed here are not held to it.
+SERVER_CREDIT_THRESHOLD = {"USD": 200, "INR": 16000}
+
+
+# Team with a Beginner tier upgrades to Growth tier when card is added
+# Teams without a card stay on Beginner.
+TIER_AFTER_CARD_ADDED = "Growth"
+
+
+def upgrade_beginner_tier_for_new_card(team_name):
+	tier, apply_limits = frappe.db.get_value("Team", team_name, ["tier", "apply_limits"])
+	if not apply_limits or tier != "Beginner":
+		return
+	new_limit = frappe.db.get_value("Team Tier", TIER_AFTER_CARD_ADDED, "amount")
+	frappe.db.set_value("Team", team_name, {"tier": TIER_AFTER_CARD_ADDED, "spending_limit": new_limit})
+
 
 class Team(Document):
 	# begin: auto-generated types
@@ -169,6 +186,7 @@ class Team(Document):
 		"receive_budget_alerts",
 		"monthly_alert_threshold",
 		"company_name",
+		"company_logo",
 		"hybrid_servers_enabled",
 		"relaxed_permissions",
 		"upi_autopay_enabled",
@@ -202,7 +220,17 @@ class Team(Document):
 			["name", "first_name", "last_name", "user_image", "user_type", "email", "api_key"],
 			as_dict=True,
 		)
-		user.is_2fa_enabled = frappe.db.get_value("User 2FA", {"user": user.name}, "enabled")
+		two_fa = (
+			frappe.db.get_value(
+				"User 2FA",
+				{"user": user.name},
+				["enabled", "unsubscribed_from_recovery_code_reminders"],
+				as_dict=True,
+			)
+			or frappe._dict()
+		)
+		user.is_2fa_enabled = two_fa.enabled
+		user.unsubscribed_from_recovery_code_reminders = two_fa.unsubscribed_from_recovery_code_reminders
 		doc.user_info = user
 		doc.balance = self.get_balance()
 		doc.is_desk_user = user.user_type == "System User"
@@ -580,11 +608,10 @@ class Team(Document):
 			self.payment_mode = "Prepaid Credits"
 
 		if self.has_value_changed("payment_mode"):
-			if (
-				self.payment_mode == "Card"
-				and frappe.db.count("Stripe Payment Method", {"team": self.name}) == 0
-			):
-				frappe.throw("No card added. Please add a card to your account.")
+			if self.payment_mode == "Card":
+				if frappe.db.count("Stripe Payment Method", {"team": self.name}) == 0:
+					frappe.throw("No card added. Please add a card to your account.")
+				upgrade_beginner_tier_for_new_card(self.name)
 			# This check to verify recent pending payment is added to avoid validation issue when updating team doctype with payment mode as credits without balance as transaction is on going
 			if (
 				self.payment_mode == "Prepaid Credits"
@@ -665,6 +692,10 @@ class Team(Document):
 		total = 0
 		for sub in subscriptions:
 			if not sub.plan_type or not sub.plan:
+				continue
+			if sub.plan_type == "S3 Storage Plan":
+				# Metered per GB stored, so there is no fixed amount subscribed to. Adding
+				# the per-GB price here would read as a monthly commitment.
 				continue
 			if sub.plan_type == "Server Storage Plan":
 				total += (frappe.db.get_value(sub.plan_type, sub.plan, "price_usd") or 0) * flt(
@@ -779,6 +810,12 @@ class Team(Document):
 			return False
 
 		return unpaid_invoices
+
+	def has_unpaid_invoices(self):
+		"""Two or more unpaid subscription invoices blocks new sites and servers, matching the New Site and New Server forms."""
+		return (
+			frappe.db.count("Invoice", {"team": self.name, "status": "Unpaid", "type": "Subscription"}) >= 2
+		)
 
 	def create_stripe_customer(self):
 		if not self.stripe_customer_id:
@@ -1276,6 +1313,14 @@ class Team(Document):
 			why = "You cannot create a new site as your account is disabled"
 			return (False, why)
 
+		if self.has_unpaid_invoices():
+			why = "Please settle your outstanding invoices to create new sites"
+			return (False, why)
+
+		if self.apply_limits and self.spending_limit <= self.total_subscribed_amount():
+			why = "You have exceeded your spending limit. Please contact support to increase your limits."
+			return (False, why)
+
 		if self.free_account or self.parent_team or self.billing_team:
 			return allow
 
@@ -1324,13 +1369,59 @@ class Team(Document):
 
 		return (False, why)
 
+	def validate_can_create_server(self):
+		"""Refuse a server the team is not entitled to buy.
+
+		These are the rules the New Server form checks before it submits, and
+		the form was the only thing checking them — a request sent past it
+		provisioned real machines for a team with no billing address and no
+		credits. Kept identical to the form so nobody who can create a server
+		today is turned away.
+		"""
+		if not self.enabled:
+			frappe.throw("You cannot create a new server because your account is disabled")
+
+		if self.has_unpaid_invoices():
+			frappe.throw("Please settle your outstanding invoices to create a new server")
+
+		if not self.billing_address:
+			frappe.throw(
+				"You don't have billing details added. Please add billing details from settings to continue."
+			)
+
+		if self.servers_enabled:
+			return
+
+		threshold = SERVER_CREDIT_THRESHOLD.get(self.currency)
+		if threshold and self.get_balance() < threshold:
+			frappe.throw(f"You need to have {threshold} {self.currency} worth of credits to create a server.")
+
 	def can_install_paid_apps(self):
 		if self.free_account or self.billing_team or self.payment_mode:
 			return True
 
+		return self.has_paid_invoice()
+
+	def can_skip_ssh_wait(self):
+		return self.has_paid_invoice() or (self.is_payment_mode_set() and self.has_paid_subscription())
+
+	def has_paid_invoice(self):
 		return bool(
 			frappe.db.exists("Invoice", {"team": self.name, "amount_paid": (">", 0), "status": "Paid"})
 		)
+
+	def has_paid_subscription(self):
+		paid_plan_filters = {
+			"Site Plan": {"price_usd": (">", 0), "is_trial_plan": 0},
+			"Server Plan": {"price_usd": (">", 0)},
+		}
+		for plan_type, filters in paid_plan_filters.items():
+			plans = frappe.get_all(
+				"Subscription", {"team": self.name, "enabled": 1, "plan_type": plan_type}, pluck="plan"
+			)
+			if plans and frappe.db.exists(plan_type, {"name": ("in", plans), **filters}):
+				return True
+		return False
 
 	def billing_info(self):
 		micro_debit_charge_field = (
@@ -1550,17 +1641,18 @@ class Team(Document):
 			except Exception:
 				log_error("Failed to remove subscription config in trial sites")
 
-	def get_upcoming_invoice(self, for_update=False):
-		# get the current period's invoice
-		today = frappe.utils.today()
+	def get_upcoming_invoice(self, date=None, for_update=False):
+		# only Draft counts - a finalized invoice may already have a Stripe/Razorpay
+		# invoice created against it and must never be mutated further
+		date = date or frappe.utils.today()
 		result = frappe.db.get_all(
 			"Invoice",
 			filters={
 				"status": "Draft",
 				"team": self.name,
 				"type": "Subscription",
-				"period_start": ("<=", today),
-				"period_end": (">=", today),
+				"period_start": ("<=", date),
+				"period_end": (">=", date),
 			},
 			order_by="creation desc",
 			limit=1,
@@ -1570,11 +1662,23 @@ class Team(Document):
 			return frappe.get_doc("Invoice", result[0], for_update=for_update)
 		return None
 
-	def create_upcoming_invoice(self):
-		today = frappe.utils.today()
-		return frappe.get_doc(
-			doctype="Invoice", team=self.name, period_start=today, type="Subscription"
-		).insert()
+	def create_upcoming_invoice(self, date=None):
+		date = date or frappe.utils.today()
+		try:
+			return frappe.get_doc(
+				doctype="Invoice", team=self.name, period_start=date, type="Subscription"
+			).insert()
+		except frappe.DuplicateEntryError:
+			# another process created the invoice for this period first
+			invoice = self.get_upcoming_invoice(date)
+			if not invoice:
+				# the period is already owned by a finalized (no longer Draft) invoice
+				frappe.throw(
+					f"Cannot create an invoice for {self.name} on {date}: a finalized invoice "
+					"already covers this period",
+					frappe.ValidationError,
+				)
+			return invoice
 
 	@frappe.whitelist()
 	def send_telegram_alert_for_failed_payment(self, invoice):
@@ -1616,6 +1720,24 @@ class Team(Document):
 				"requested_amount": f"{requested_amount:,.0f}",
 				"confirmed_amount": f"{confirmed_amount:,.0f}",
 				"upi_autopay_link": frappe.utils.get_url("/dashboard/billing/upi-autopay"),
+			},
+		)
+
+	def send_email_for_invalid_payment_method(self, invoice):
+		if isinstance(invoice, str):
+			invoice = frappe.get_doc("Invoice", invoice)
+
+		email = get_communication_info("Email", "Billing", "Team", self.name) or [self.user]
+		subject = "Card on Frappe Cloud could not be charged"
+
+		frappe.sendmail(
+			recipients=email,
+			subject=subject,
+			template="payment_method_invalid",
+			args={
+				"subject": subject,
+				"amount": invoice.get_formatted("amount_due_with_tax"),
+				"billing_link": frappe.utils.get_url("/dashboard/billing"),
 			},
 		)
 

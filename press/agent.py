@@ -9,6 +9,7 @@ import re
 from contextlib import suppress
 from datetime import date
 from typing import TYPE_CHECKING, Any, Literal
+from urllib.parse import urlencode
 
 import frappe
 import frappe.utils
@@ -935,7 +936,7 @@ class Agent:
 		return self.request("DELETE", path, data, raises=raises)
 
 	def _make_req(self, method, path, data, files, agent_job_id):
-		url = self._get_request_url(path)
+		url = self.get_request_url(path)
 		password = get_decrypted_password(self.server_type, self.server, "agent_password")
 		headers = {"Authorization": f"bearer {password}", "X-Agent-Job-Id": agent_job_id}
 
@@ -1038,7 +1039,7 @@ class Agent:
 			frappe.new_doc("Agent Request Failure", **fields).insert(ignore_permissions=True)
 
 	def raw_request(self, method, path, data=None, raises=True, timeout=None):
-		url = self._get_request_url(path)
+		url = self.get_request_url(path)
 		password = get_decrypted_password(self.server_type, self.server, "agent_password")
 		headers = {"Authorization": f"bearer {password}"}
 		timeout = timeout or (10, 30)
@@ -1048,7 +1049,7 @@ class Agent:
 			response.raise_for_status()
 		return json_response
 
-	def _get_request_url(self, path):
+	def get_request_url(self, path):
 		if self.server_type in ("Server", "Database Server"):
 			proxy = None
 			server_ip, server_private_ip, server_cluster = frappe.db.get_value(
@@ -1208,6 +1209,21 @@ Response: {reason or getattr(result, "text", "Unknown")}
 	def cancel_job(self, id):
 		return self.post(f"jobs/{id}/cancel")
 
+	def fetch_site_backup_jobs(self, site: str, start: str, end: str):
+		"""Queue a read of this server's job database for the backup audit trail.
+
+		The range rides in the path because job deduplication keys off it, and two
+		ranges for one site are different questions.
+		"""
+		query = urlencode({"site": site, "start": start, "end": end})
+		return self.create_agent_job(
+			"Fetch Backup Jobs",
+			f"server/backup-jobs?{query}",
+			site=site,
+			reference_doctype="Site",
+			reference_name=site,
+		)
+
 	def get_site_sid(self, site, user=None):
 		if user:
 			data = {"user": user}
@@ -1216,8 +1232,11 @@ Response: {reason or getattr(result, "text", "Unknown")}
 			result = self.get(f"benches/{site.bench}/sites/{site.name}/sid")
 		return result and result.get("sid")
 
-	def get_site_info(self, site):
-		result = self.get(f"benches/{site.bench}/sites/{site.name}/info")
+	def get_site_info(self, site, database_only=False):
+		path = f"benches/{site.bench}/sites/{site.name}/info"
+		if database_only:
+			path += "?database_only=1"
+		result = self.get(path)
 		if result:
 			return result["data"]
 		return None
@@ -1647,6 +1666,24 @@ Response: {reason or getattr(result, "text", "Unknown")}
 			data={"binlogs": binlogs, "offsite": offsite_config},
 		)
 
+	def upload_audit_logs_to_s3(self, database_server: DatabaseServer):
+		if self.server_type != "Database Server":
+			return NotImplementedError("Only Database Server supports this method")
+
+		cluster = frappe.get_value("Database Server", self.server, "cluster")
+		# Binlogs use the bare server name as prefix, so audit logs get their own keyspace
+		offsite_config = self._get_offsite_backup_config(cluster, backups_path=f"{self.server}/audit")
+
+		return self.create_agent_job(
+			"Upload Audit Logs To S3",
+			"/database/audit-logs/upload",
+			data={
+				"private_ip": database_server.private_ip,
+				"mariadb_root_password": database_server.get_password("mariadb_root_password"),
+				"offsite": offsite_config,
+			},
+		)
+
 	def add_binlogs_to_indexer(self, binlogs):
 		return self.create_agent_job(
 			"Add Binlogs To Indexer",
@@ -1988,13 +2025,14 @@ Response: {reason or getattr(result, "text", "Unknown")}
 			reference_name=reference_name,
 		)
 
-	def update_nginx_access(self, ip_accept: list[str], ip_drop: list[str]) -> AgentJob:
+	def update_nginx_access(self, ip_accept: list[str], ip_drop: list[str], proxy_ip: str) -> AgentJob:
 		return self.create_agent_job(
 			"Update Nginx Access",
 			"/server/update-nginx-access",
 			data={
 				"ip_accept": ip_accept,
 				"ip_drop": ip_drop,
+				"proxy_ip": proxy_ip,
 			},
 		)
 

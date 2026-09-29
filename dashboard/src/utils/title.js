@@ -1,9 +1,11 @@
-const APP_NAME = 'Frappe Cloud'
+import { translateUiText } from '@/i18n'
+
+const APP_NAME = 'Frappe 云'
 
 // Joins the parts of a page title, outermost first, and appends the app name.
 // pageTitle('Bench One', 'Config') -> 'Bench One - Config - Frappe Cloud'
 export function pageTitle(...parts) {
-	return [...parts, APP_NAME].filter(Boolean).join(' - ')
+	return [...parts.map((part) => translateUiText(part)), APP_NAME].filter(Boolean).join(' - ')
 }
 
 // The title of a route, built from the meta.title of every record it matched.

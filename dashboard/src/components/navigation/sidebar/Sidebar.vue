@@ -152,8 +152,8 @@ const helpDropdownOptions = [
 								Frappe Cloud
 							</div>
 
-							<div class="text-sm text-left text-ink-gray-7 truncate">
-								{{ $team?.get.loading ? 'Loading...' : $team?.doc?.user }}
+							<div class="text-sm text-left text-ink-gray-7 truncate" data-no-translate>
+								{{ $team?.get.loading ? '加载中…' : $team?.doc?.user }}
 							</div>
 						</div>
 

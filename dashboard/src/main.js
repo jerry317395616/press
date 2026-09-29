@@ -20,6 +20,7 @@ import {
 import registerGlobalComponents from './components/global/register';
 import './vendor/posthog.js';
 import { pulse } from './telemetry/pulse.js';
+import { installChineseUi } from './i18n';
 
 // Temporarily kills browser-side Sentry (init, tracing, replay, envelopes).
 // Flip back to false to re-enable.
@@ -177,7 +178,10 @@ getInitialData().then(() => {
 	}
 
 	importGlobals().then(() => {
-		router.isReady().then(() => app.mount('#app'));
+		router.isReady().then(() => {
+			app.mount('#app');
+			installChineseUi();
+		});
 	});
 
 	if (workingHours()) {

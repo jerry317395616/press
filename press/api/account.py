@@ -45,6 +45,13 @@ if TYPE_CHECKING:
 	from press.press.doctype.user_2fa_recovery_code import User2FARecoveryCode
 
 
+def has_outgoing_email() -> bool:
+	return bool(
+		frappe.conf.get("mail_server")
+		or frappe.db.exists("Email Account", {"enable_outgoing": 1, "default_outgoing": 1})
+	)
+
+
 @frappe.whitelist(allow_guest=True)
 @rate_limit(limit=5, seconds=60 * 60)
 def signup(
@@ -60,6 +67,12 @@ def signup(
 		frappe.throw(_("Account {0} has been deactivated").format(email))
 	elif exists and enabled:
 		frappe.throw(_("Account {0} is already registered").format(email))
+	if (
+		frappe.db.get_single_value("Press Settings", "self_hosted_free_site_plan")
+		and not product
+		and not has_outgoing_email()
+	):
+		frappe.throw("发件邮箱尚未配置。请联系管理员。")
 
 	account_request = frappe.db.get_value(
 		"Account Request",

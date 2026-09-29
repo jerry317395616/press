@@ -62,9 +62,20 @@ class TestAccountApi(TestCase):
 	def _fake_signup(self, email: str | None = None) -> Mock:
 		"""Call press.api.account.signup without sending verification mail."""
 		email = email or frappe.mock("email")
-		with patch.object(AccountRequest, "send_verification_email") as mock_send_email:
+		with (
+			patch.object(AccountRequest, "send_verification_email") as mock_send_email,
+			patch("press.api.account.has_outgoing_email", return_value=True),
+		):
 			signup(email)
 		return mock_send_email
+
+	def test_self_hosted_signup_requires_outgoing_email(self):
+		frappe.db.set_single_value("Press Settings", "self_hosted_free_site_plan", "Self-Hosted Free")
+		with (
+			patch("press.api.account.has_outgoing_email", return_value=False),
+			self.assertRaisesRegex(frappe.ValidationError, "发件邮箱尚未配置"),
+		):
+			signup("unconfigured-mail@example.com")
 
 	def test_account_request_is_created_from_signup(self):
 		acc_req_count_before = frappe.db.count("Account Request")

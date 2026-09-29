@@ -116,7 +116,7 @@ export default {
 	},
 	mounted() {
 		if (new URLSearchParams(window.location.search).get('showRemoteLoginError')) {
-			toast.error('Token Invalid or Expired');
+			toast.error('登录凭证无效或已过期');
 		}
 	},
 	methods: {

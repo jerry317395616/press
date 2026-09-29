@@ -1,0 +1,10 @@
+[Unit]
+Description=Copy Press site backups to local host daily
+
+[Timer]
+OnCalendar=*-*-* 03:45:00
+Persistent=true
+Unit=press-local-site-backup.service
+
+[Install]
+WantedBy=timers.target

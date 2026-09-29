@@ -55,10 +55,45 @@ PRESS_HEALTHCHECK_BASE=https://press.myyr.top python3 /home/zyd/frappe/press-dep
 ```
 
 The health check logs in using the protected password file and reports only
-status; it does not print credentials. To inspect the running deployment,
-also check `https://press.myyr.top`. Press is the control plane; creating
-managed customer sites additionally requires build and application servers,
-cluster/VM records, and agents configured in Press.
+status; it does not print credentials. The control plane is available at
+`https://press.myyr.top/dashboard`.
+
+## Managed-site infrastructure
+
+The single ARM64 host runs three isolated LXD instances: `n1` is the HTTPS and
+SSH proxy, `f1` is the app/build server, and `m1` is the MariaDB server. Press
+has Generic-provider cluster, VM, server, agent, free site plan, and Frappe v15
+release-group records. An authenticated private Docker registry and a read-only
+Git cache run on the host. The `press-demo.myyr.top` site was created through
+Press's normal site API and serves over HTTPS. New builds include a local SSH
+certificate authority; the proxy-to-Bench certificate route has been tested.
+
+Cloudflare's dedicated tunnel serves the Press control plane and exact DNS
+records for managed `myyr.top` sites. The site DNS sync and wildcard TLS
+certificate renewal run through user-level systemd timers. Do not change the
+unrelated `child.myyr.top` route or broad wildcard DNS records.
+
+## Free mode and local backups
+
+Paid hosting is intentionally disabled. The configured `Press Self-Hosted Free`
+plan is zero-priced and only allowed on Generic servers. The hourly
+`press-billing-guard.timer` keeps payment and billing scheduled jobs stopped
+after future migrations. Do not enable paid plans until a payment provider and
+billing controls have been configured and tested.
+
+Press performs local logical site backups. The daily
+`press-local-site-backup.timer` copies the app VM's site backup files into
+`/home/zyd/frappe/press-deployment/backups/app-server`; the control plane has
+its own daily `press-control-backup.timer`. Backup directories are private to
+the `zyd` account. These are separate copies on the same physical machine,
+not disaster-recovery backups. Add off-host storage before treating this as a
+fault-tolerant production service.
+
+After changing a local backup or billing guard unit, copy the matching file
+from this `deployment/` directory into the corresponding path under
+`/home/zyd/frappe/press-deployment` or `~/.config/systemd/user`, then run
+`systemctl --user daemon-reload` and restart its timer. Never commit the
+registry password, the SSH CA private key, or site backup contents.
 
 Never run `bench update` against this or the existing production Bench.
 Back up the site, update and test each app intentionally, build assets, migrate,

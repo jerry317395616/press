@@ -26,6 +26,8 @@ app_include_js = [
 # web_include_css = "/assets/press/css/press.css"
 # web_include_js = "/assets/press/js/press.js"
 
+signup_form_template = "press/templates/press_signup.html"
+
 # include js in page
 # page_js = {"page" : "public/js/file.js"}
 
@@ -69,13 +71,14 @@ website_route_rules = [
 ]
 
 website_redirects = [
+	{"source": "/", "target": "/dashboard/login", "redirect_http_status": 302},
 	{"source": "/dashboard/f-login", "target": get_frappe_io_auth_url() or "/"},
 	{
 		"source": "/suspended-site",
 		"target": "/api/method/press.api.handle_suspended_site_redirection",
 	},
 	{"source": "/f-login", "target": "/dashboard/f-login"},
-	{"source": "/signup", "target": "/erpnext/signup"},
+	{"source": "/signup", "target": "/dashboard/signup", "redirect_http_status": 302},
 ]
 
 email_css = ["/assets/press/css/email.css"]

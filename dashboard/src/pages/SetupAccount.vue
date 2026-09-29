@@ -5,8 +5,8 @@
 	>
 		<div class="w-full overflow-auto">
 			<LoginBox
-				:title="invitedBy ? 'Invitation to join' : 'Let\'s set up your account'"
-				:subtitle="invitedBy ? `Invitation by ${invitedBy}` : ''"
+				:title="invitedBy ? '邀请加入团队' : '完善您的账号信息'"
+				:subtitle="invitedBy ? `来自 ${invitedBy} 的邀请` : ''"
 			>
 				<template v-slot:logo v-if="saasProduct">
 					<div class="flex space-x-2">
@@ -19,7 +19,7 @@
 				<form class="mt-6 flex flex-col" @submit.prevent="submitForm">
 					<template v-if="is2FA">
 						<FormControl
-							label="2FA Code from your Authenticator App"
+							label="身份验证器中的双重验证代码"
 							placeholder="123456"
 							v-model="twoFactorCode"
 							required
@@ -35,7 +35,7 @@
 								})
 							"
 						>
-							Verify
+							验证
 						</Button>
 						<ErrorMessage class="mt-2" :message="$resources.verify2FA.error" />
 					</template>
@@ -44,7 +44,7 @@
 							<template v-if="!userExists">
 								<div class="flex gap-2">
 									<FormControl
-										label="First name"
+										label="名字"
 										type="text"
 										v-model="firstName"
 										name="fname"
@@ -54,7 +54,7 @@
 										:disabled="Boolean(oauthSignup)"
 									/>
 									<FormControl
-										label="Last name"
+										label="姓氏"
 										type="text"
 										v-model="lastName"
 										name="lname"
@@ -66,7 +66,7 @@
 								</div>
 							</template>
 							<FormControl
-								label="Email"
+								label="电子邮箱"
 								type="text"
 								:modelValue="email"
 								variant="outline"
@@ -76,14 +76,14 @@
 								type="select"
 								:options="countryOptions"
 								v-if="!isInvitation"
-								label="Country"
+								label="国家或地区"
 								v-model="country"
 								variant="outline"
 								required
 							/>
 							<PhoneInput
 								v-if="!isInvitation"
-								label="Phone"
+								label="电话"
 								v-model="phoneNumber"
 								:countries="countries"
 								:country="country"
@@ -105,7 +105,7 @@
 							<label
 								for="share-details-consent"
 								class="ml-2 text-base font-normal"
-								>Allow my details to be shared with a local partner</label
+								>允许向当地合作伙伴分享我的信息</label
 							>
 						</div>
 						<ErrorMessage
@@ -122,20 +122,20 @@
 							type="submit"
 						>
 							{{
-								is2FA ? 'Verify' : isInvitation ? 'Accept' : 'Create account'
+								is2FA ? '验证' : isInvitation ? '接受邀请' : '创建账号'
 							}}
 						</Button>
 					</template>
 				</form>
 				<div class="mt-4" v-if="!is2FA && !isInvitation">
 					<span class="text-base font-normal text-ink-gray-6">
-						{{ 'By signing up, you agree to our ' }}
+						{{ '注册即表示您同意我们的 ' }}
 					</span>
 					<a
 						class="text-base font-normal text-ink-gray-9 underline hover:text-ink-gray-7"
 						href="https://frappecloud.com/policies"
 					>
-						Terms & Policies
+						服务条款与政策
 					</a>
 				</div>
 			</LoginBox>
@@ -145,9 +145,7 @@
 		class="mt-20 px-6 text-center"
 		v-else-if="!$resources.validateRequestKey.loading && !email"
 	>
-		Verification link or code is invalid or expired.
-		<Link to="/signup">Sign up</Link>
-		for a new account.
+		验证链接或验证码无效或已过期。请<Link to="/signup">重新注册</Link>。
 	</div>
 	<div v-else></div>
 </template>
@@ -157,6 +155,7 @@ import LoginBox from '../components/auth/LoginBox.vue';
 import Link from '@/components/Link.vue';
 import Form from '@/components/Form.vue';
 import PhoneInput from '@/components/PhoneInput.vue';
+import { getChineseCountryName } from '@/utils/chineseCountryName.js';
 
 const detailsSharedProducts = [
 	'erpnext',
@@ -189,7 +188,7 @@ export default {
 			isInvitation: null,
 			oauthSignup: 0,
 			oauthDomain: false,
-			country: null,
+			country: 'China',
 			invitedBy: null,
 			invitedByParentTeam: false,
 			countries: [],
@@ -216,7 +215,7 @@ export default {
 						this.email = res.email;
 						this.firstName = res.first_name;
 						this.lastName = res.last_name;
-						this.country = res.country;
+						this.country = res.is_invitation ? res.country : 'China';
 						this.userExists = res.user_exists;
 						this.invitationToTeam = res.team;
 						this.invitedBy = res.invited_by;
@@ -305,7 +304,10 @@ export default {
 			);
 		},
 		countryOptions() {
-			return this.countries.map((c) => c.name);
+			return this.countries.map((country) => ({
+				label: getChineseCountryName(country),
+				value: country.name,
+			}));
 		},
 	},
 	methods: {

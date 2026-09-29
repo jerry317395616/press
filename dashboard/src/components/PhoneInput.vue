@@ -16,7 +16,7 @@
 						<span v-if="selectedCountry" class="flex items-center gap-1">
 							<img
 								:src="getFlagUrl(selectedCountry.code)"
-								:alt="selectedCountry.name"
+								:alt="getChineseCountryName(selectedCountry)"
 								class="h-3 w-4 object-cover"
 							/>
 							<span class="text-ink-gray-6">{{ selectedCountry.isd }}</span>
@@ -32,7 +32,7 @@
 						<input
 							v-model="searchQuery"
 							type="text"
-							placeholder="Search country..."
+							placeholder="搜索国家或地区..."
 							class="mb-1 w-full rounded border border-outline-gray-1 px-2 py-1.5 text-sm focus:border-outline-gray-3 focus:outline-none"
 							@click.stop
 						/>
@@ -47,17 +47,17 @@
 						>
 							<img
 								:src="getFlagUrl(country.code)"
-								:alt="country.name"
+								:alt="getChineseCountryName(country)"
 								class="h-3 w-4 object-cover"
 							/>
-							<span class="flex-1 truncate">{{ country.name }}</span>
+							<span class="flex-1 truncate">{{ getChineseCountryName(country) }}</span>
 							<span class="text-ink-gray-5">{{ country.isd }}</span>
 						</div>
 						<div
 							v-if="filteredCountries.length === 0"
 							class="px-2 py-1.5 text-sm text-ink-gray-5"
 						>
-							No countries found
+							未找到国家或地区
 						</div>
 					</div>
 				</template>
@@ -77,6 +77,7 @@
 import { Popover } from 'frappe-ui'
 import { computed, onMounted, ref, watch } from 'vue'
 import LucideChevronDown from '~icons/lucide/chevron-down'
+import { getChineseCountryName } from '@/utils/chineseCountryName.js'
 
 const props = defineProps({
 	modelValue: {
@@ -116,6 +117,7 @@ const filteredCountries = computed(() => {
 	return props.countries.filter(
 		(c) =>
 			c.name.toLowerCase().includes(query) ||
+			getChineseCountryName(c).toLowerCase().includes(query) ||
 			c.isd.includes(query) ||
 			c.code.toLowerCase().includes(query),
 	)

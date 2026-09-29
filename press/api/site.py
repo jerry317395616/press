@@ -335,6 +335,14 @@ def _check_warranty_restrictions(
 def _is_plan_allowed_on_server(server: str, new_site_plan: dict) -> bool:
 	if new_site_plan.get("price_usd", 0) > 0:
 		return True
+	if (
+		new_site_plan.get("enabled")
+		and new_site_plan.get("name")
+		== frappe.db.get_single_value("Press Settings", "self_hosted_free_site_plan")
+		and frappe.db.get_value("Server", server, "provider") == "Generic"
+		and not new_site_plan.get("price_inr")
+	):
+		return True
 	if not (
 		new_site_plan.get("dedicated_server_plan", 0)
 		and frappe.db.get_value("Server", server, "team") == get_current_team()
@@ -379,6 +387,9 @@ def validate_plan(server: str, site: str, new_plan: str, is_new: bool = False) -
 		"Site Plan",
 		new_plan,
 		[
+			"name",
+			"enabled",
+			"price_inr",
 			"price_usd",
 			"dedicated_server_plan",
 			"restrict_based_on_dedicated_server_plan",

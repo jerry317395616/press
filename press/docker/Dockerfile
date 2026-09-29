@@ -1,5 +1,4 @@
-# syntax = docker/dockerfile:experimental
-FROM ubuntu:22.04
+FROM public.ecr.aws/docker/library/ubuntu:22.04
 
 ENV FRAPPE_DOCKER_BUILD True
 ENV LANG C.UTF-8
@@ -238,6 +237,8 @@ RUN --mount=type=cache,target=/home/frappe/.cache,uid=1000,gid=1000 python${PYTH
 RUN --mount=type=cache,target=/home/frappe/.cache,uid=1000,gid=1000 python${PYTHON_VERSION} -m pip install --upgrade setuptools
 
 RUN git config --global advice.detachedHead false
+RUN git config --global url."git://10.144.133.1:9418/frappe-gunicorn.git".insteadOf "https://github.com/frappe/gunicorn" \
+  && git config --global url."git://10.144.133.1:9418/frappe-pypika.git".insteadOf "https://github.com/frappe/pypika"
 
 ENV PYTHONUNBUFFERED 1
 

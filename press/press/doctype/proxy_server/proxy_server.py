@@ -211,6 +211,7 @@ class ProxyServer(BaseServer):
 				user=self.ssh_user or "root",
 				port=self.ssh_port or 22,
 				variables={
+					"docker_registry_url": settings.docker_registry_url,
 					"registry_url": settings.docker_registry_url,
 					"registry_username": settings.docker_registry_username,
 					"registry_password": settings.docker_registry_password,

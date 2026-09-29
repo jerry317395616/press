@@ -4,9 +4,11 @@
 import os
 import shlex
 import shutil
+import socket
 import subprocess
+import tempfile
+import time
 
-import docker
 import frappe
 from frappe.model.document import Document
 from frappe.utils import cint
@@ -178,14 +180,68 @@ class SSHCertificateAuthority(Document):
 			as_dict=True,
 		)
 
-		client = docker.from_env()
-		client.login(
-			registry=settings.docker_registry_url,
-			username=settings.docker_registry_username,
-			password=settings.docker_registry_password,
-		)
+		# Keep registry credentials out of process arguments and ~/.docker.
+		# The Docker CLI also avoids the bundled SDK's http+docker transport issue.
+		with tempfile.TemporaryDirectory(prefix="press-ssh-registry-") as config_dir:
+			environment = {**os.environ, "DOCKER_CONFIG": config_dir}
 
-		for line in client.images.push(
-			self.docker_image_repository, self.docker_image_tag, stream=True, decode=True
-		):
-			print(line)
+			def login(registry):
+				return subprocess.run(
+					[
+						"docker",
+						"login",
+						"--username",
+						settings.docker_registry_username,
+						"--password-stdin",
+						registry,
+					],
+					input=settings.docker_registry_password,
+					text=True,
+					check=True,
+					capture_output=True,
+					env=environment,
+				)
+
+			try:
+				login(settings.docker_registry_url)
+			except subprocess.CalledProcessError:
+				# A local self-hosted HTTP registry may not be configured as an
+				# insecure registry in host Docker. Forward it through loopback,
+				# which Docker permits, without restarting other containers.
+				if not shutil.which("socat"):
+					raise
+				with socket.socket() as listener:
+					listener.bind(("127.0.0.1", 0))
+					port = listener.getsockname()[1]
+				loopback = f"127.0.0.1:{port}"
+				loopback_image = self.docker_image.replace(
+					settings.docker_registry_url, loopback, 1
+				)
+				forwarder = subprocess.Popen(
+					[
+						"socat",
+						f"TCP-LISTEN:{port},bind=127.0.0.1,reuseaddr,fork",
+						f"TCP:{settings.docker_registry_url}",
+					],
+					stdout=subprocess.DEVNULL,
+					stderr=subprocess.DEVNULL,
+				)
+				try:
+					time.sleep(0.5)
+					if forwarder.poll() is not None:
+						raise RuntimeError("Registry loopback forwarder did not start")
+					subprocess.run(
+						["docker", "tag", self.docker_image, loopback_image], check=True
+					)
+					login(loopback)
+					subprocess.run(["docker", "push", loopback_image], check=True, env=environment)
+				finally:
+					subprocess.run(
+						["docker", "image", "rm", loopback_image],
+						check=False,
+						capture_output=True,
+					)
+					forwarder.terminate()
+					forwarder.wait(timeout=5)
+			else:
+				subprocess.run(["docker", "push", self.docker_image], check=True, env=environment)

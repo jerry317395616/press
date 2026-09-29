@@ -2,12 +2,21 @@
   apt_key:
     url: https://mariadb.org/mariadb_release_signing_key.pgp
     state: present
+  when: cloud_provider | default('') != 'Generic'
 
 - name: Add MariaDB Repository
   apt_repository:
     repo: deb https://mirror.rackspace.com/mariadb/repo/10.6/ubuntu {{ ansible_distribution_release }} main
     state: present
     update_cache: true
+  when: cloud_provider | default('') != 'Generic'
+
+- name: Use Ubuntu MariaDB Repository for Generic Servers
+  apt_repository:
+    repo: deb https://mirror.rackspace.com/mariadb/repo/10.6/ubuntu {{ ansible_distribution_release }} main
+    state: absent
+    update_cache: true
+  when: cloud_provider | default('') == 'Generic'
 
 - name: Update APT Cache
   apt:
@@ -22,7 +31,7 @@
     pkg:
       - mariadb-server
       - mariadb-client
-      - libmariadbclient18
+      - "{{ 'libmariadb3' if cloud_provider | default('') == 'Generic' else 'libmariadbclient18' }}"
     state: present
 
 - name: Install MySQLdb Python Package

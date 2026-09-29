@@ -1,7 +1,6 @@
 <template>
-	<div class="flex h-screen overflow-hidden">
-		<div class="w-full overflow-auto">
-			<LoginBox
+	<div>
+			<MatrixAuthShell
 				:title="title"
 				:subtitle="subtitle"
 				:class="{ 'pointer-events-none': $resources.signup.loading }"
@@ -59,7 +58,7 @@
 									:message="$resources.verify2FA.error"
 								/>
 								<Button
-									class="mt-4"
+									class="matrix-primary-action mt-4"
 									label="Verify"
 									variant="solid"
 									:loading="
@@ -97,7 +96,7 @@
 									:message="$resources.recover2FA.error"
 								/>
 								<Button
-									class="mt-4"
+									class="matrix-primary-action mt-4"
 									label="Reset"
 									variant="solid"
 									:loading="
@@ -144,7 +143,7 @@
 								</router-link>
 								<Button
 									type="submit"
-									class="mt-4"
+									class="matrix-primary-action mt-4"
 									:loading="$resources.resetPassword.loading"
 									variant="solid"
 								>
@@ -171,7 +170,7 @@
 								</p>
 								<!-- OAuth Authentication -->
 								<template v-if="isOauthLogin && !usePassword">
-									<Button class="mt-4" variant="solid" type="submit">
+									<Button class="matrix-primary-action mt-4" variant="solid" type="submit">
 										Log in with {{ oauthProviderName }}
 									</Button>
 								</template>
@@ -201,7 +200,7 @@
 										</router-link>
 									</div>
 									<Button
-										class="mt-4"
+										class="matrix-primary-action mt-4"
 										variant="solid"
 										:loading="$session.login.loading"
 										type="submit"
@@ -225,7 +224,7 @@
 										/>
 										<div class="mt-4 space-y-2">
 											<Button
-												class="w-full"
+												class="matrix-primary-action w-full"
 												:loading="$resources.verifyOTPAndLogin.loading"
 												variant="solid"
 												@click="verifyOTPAndLogin"
@@ -252,7 +251,7 @@
 									<!-- Initial OTP Request Button -->
 									<template v-else>
 										<Button
-											class="mt-4"
+											class="matrix-primary-action mt-4"
 											:loading="$resources.sendOTP.loading"
 											variant="solid"
 											@click="$resources.sendOTP.submit()"
@@ -286,7 +285,7 @@
 									required
 								/>
 								<Button
-									class="mt-4"
+									class="matrix-primary-action mt-4"
 									:loading="$resources.signup.loading"
 									variant="solid"
 									type="submit"
@@ -316,8 +315,8 @@
 								<span class="text-p-base text-ink-gray-6">
 									{{
 										$route.name == 'Login'
-											? 'New member? '
-											: 'Already have an account? '
+											? '还没有账号？'
+											: '已有账号？'
 									}}
 								</span>
 								<router-link
@@ -328,7 +327,7 @@
 									}"
 								>
 									{{
-										$route.name == 'Login' ? 'Create a new account.' : 'Log in.'
+										$route.name == 'Login' ? '立即注册' : '登录'
 									}}
 								</router-link>
 							</div>
@@ -361,7 +360,7 @@
 							/>
 							<Button
 								type="submit"
-								class="mt-4"
+								class="matrix-primary-action mt-4"
 								variant="solid"
 								:loading="$resources.verifyOTP.loading"
 								@click="$resources.verifyOTP.submit()"
@@ -399,8 +398,8 @@
 								<span class="text-base font-normal text-ink-gray-6">
 									{{
 										$route.name == 'Login'
-											? 'New member? '
-											: 'Already have an account? '
+											? '还没有账号？'
+											: '已有账号？'
 									}}
 								</span>
 								<router-link
@@ -411,7 +410,7 @@
 									}"
 								>
 									{{
-										$route.name == 'Login' ? 'Create a new account.' : 'Log in.'
+										$route.name == 'Login' ? '立即注册' : '登录'
 									}}
 								</router-link>
 							</div>
@@ -431,8 +430,7 @@
 					</div>
 				</template>
 
-			</LoginBox>
-		</div>
+			</MatrixAuthShell>
 
 		<Dialog
 			v-model="showReactivateAccountDialog"
@@ -467,7 +465,7 @@
 </template>
 
 <script>
-import LoginBox from '../components/auth/LoginBox.vue';
+import MatrixAuthShell from '../components/auth/MatrixAuthShell.vue';
 import { getAnonymousId } from '@/telemetry/pulse.js';
 import GoogleIconSolid from '@/components/icons/GoogleIconSolid.vue';
 import GoogleIcon from '@/components/icons/GoogleIcon.vue';
@@ -480,7 +478,7 @@ import CustomToast from '../components/CustomToast.vue';
 export default {
 	name: 'Signup',
 	components: {
-		LoginBox,
+		MatrixAuthShell,
 		GoogleIcon,
 		CustomToast,
 	},

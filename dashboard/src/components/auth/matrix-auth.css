@@ -1,0 +1,494 @@
+.matrix-auth-page {
+	--matrix-ink: #0b1743;
+	--matrix-blue: #225eff;
+	min-height: 100vh;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	color: var(--matrix-ink);
+	font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+	background:
+		radial-gradient(circle at 86% 27%, rgba(162, 190, 255, 0.34), transparent 31%),
+		radial-gradient(circle at 29% 76%, rgba(214, 225, 255, 0.44), transparent 36%),
+		linear-gradient(114deg, #fbfdff 0%, #f7faff 45%, #eaf2ff 100%);
+}
+
+.matrix-icon-library {
+	position: absolute;
+	width: 0;
+	height: 0;
+	overflow: hidden;
+}
+
+.matrix-auth-header,
+.matrix-auth-layout,
+.matrix-auth-footer {
+	width: min(100%, 1680px);
+	margin-inline: auto;
+	position: relative;
+	z-index: 1;
+}
+
+.matrix-auth-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 34px clamp(26px, 4.8vw, 82px) 10px;
+}
+
+.matrix-brand,
+.matrix-card-brand {
+	display: inline-flex;
+	align-items: center;
+	gap: 15px;
+	color: var(--matrix-ink);
+	text-decoration: none;
+}
+
+.matrix-brand:hover {
+	color: var(--matrix-ink);
+	text-decoration: none;
+}
+
+.matrix-mark {
+	position: relative;
+	display: inline-block;
+	width: 55px;
+	height: 55px;
+	flex: none;
+	border-radius: 9px;
+	background: linear-gradient(143deg, #316bff 0%, #0641e9 100%);
+	box-shadow: 0 10px 23px rgba(47, 89, 231, 0.18);
+}
+
+.matrix-mark span {
+	position: absolute;
+	left: 15px;
+	top: 14px;
+	width: 30px;
+	height: 27px;
+	border-radius: 2px 0 0 0;
+	border-left: 10px solid white;
+	border-bottom: 10px solid white;
+}
+
+.matrix-mark i {
+	position: absolute;
+	right: -9px;
+	top: -8px;
+	width: 21px;
+	height: 21px;
+	border-radius: 5px;
+	background: linear-gradient(150deg, #8c49ff, #6544e8);
+	box-shadow: 0 6px 15px rgba(102, 68, 232, 0.18);
+}
+
+.matrix-brand-type {
+	display: flex;
+	flex-direction: column;
+	line-height: 1;
+}
+
+.matrix-brand-type strong {
+	font-size: 38px;
+	font-weight: 800;
+	letter-spacing: 0.035em;
+}
+
+.matrix-brand-type small {
+	margin-top: 7px;
+	font-size: 8px;
+	font-weight: 700;
+	letter-spacing: 0.34em;
+	color: #8595bf;
+}
+
+.matrix-language {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 15px;
+	font-weight: 600;
+	color: #263b67;
+}
+
+.matrix-language svg {
+	width: 22px;
+	height: 22px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.6;
+}
+
+.matrix-auth-layout {
+	flex: 1;
+	display: grid;
+	grid-template-columns: minmax(0, 1.25fr) minmax(420px, 0.85fr);
+	align-items: center;
+	gap: clamp(42px, 5vw, 90px);
+	padding: 10px clamp(26px, 4.8vw, 82px) 38px;
+}
+
+.matrix-hero {
+	position: relative;
+	min-height: 620px;
+	display: flex;
+	align-items: center;
+}
+
+.matrix-hero-copy {
+	position: relative;
+	z-index: 1;
+}
+
+.matrix-hero-art {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+}
+
+.matrix-hero-art span {
+	position: absolute;
+	display: block;
+	filter: blur(0.3px);
+}
+
+.matrix-art-main {
+	width: 64%;
+	height: 72%;
+	right: 3%;
+	top: 12%;
+	border: 90px solid rgba(91, 139, 252, 0.13);
+	border-radius: 28% 14% 25% 29%;
+	transform: rotate(-13deg);
+}
+
+.matrix-art-top {
+	width: 148px;
+	height: 148px;
+	right: 5%;
+	top: 2%;
+	border-radius: 24px;
+	background: linear-gradient(135deg, rgba(158, 125, 255, 0.47), rgba(98, 71, 232, 0.3));
+	transform: rotate(-11deg);
+}
+
+.matrix-art-side {
+	width: 95px;
+	height: 260px;
+	right: 4%;
+	top: 39%;
+	border-radius: 12px;
+	background: linear-gradient(140deg, rgba(107, 157, 255, 0.33), rgba(75, 111, 220, 0.12));
+	transform: rotate(-12deg);
+}
+
+.matrix-eyebrow {
+	margin: 0 0 30px;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.32em;
+	color: #7d94cc;
+}
+
+.matrix-hero h1 {
+	margin: 0;
+	font-size: clamp(52px, 5vw, 82px);
+	font-weight: 800;
+	line-height: 1.14;
+	letter-spacing: -0.055em;
+}
+
+.matrix-hero h1 span {
+	background: linear-gradient(90deg, #1460ff 0%, #3860ff 57%, #8042e9 100%);
+	background-clip: text;
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+.matrix-hero-description {
+	margin: 35px 0 0;
+	font-size: clamp(16px, 1.2vw, 20px);
+	line-height: 1.75;
+	color: #68799f;
+}
+
+.matrix-features {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 28px 24px;
+	margin-top: 55px;
+}
+
+.matrix-feature {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.matrix-feature-icon {
+	width: 66px;
+	height: 66px;
+	flex: none;
+	display: grid;
+	place-items: center;
+	border-radius: 17px;
+	color: #2860f5;
+	background: linear-gradient(135deg, #e6efff, #eef0ff);
+}
+
+.matrix-feature:nth-child(even) .matrix-feature-icon {
+	color: #654ce5;
+	background: linear-gradient(135deg, #edeaff, #f4f1ff);
+}
+
+.matrix-feature-icon svg {
+	width: 26px;
+	height: 26px;
+}
+
+.matrix-feature strong,
+.matrix-feature small {
+	display: block;
+}
+
+.matrix-feature strong {
+	font-size: 19px;
+	font-weight: 750;
+}
+
+.matrix-feature small {
+	margin-top: 5px;
+	font-size: 14px;
+	color: #7e8eb1;
+}
+
+.matrix-auth-card {
+	width: 100%;
+	min-height: 700px;
+	padding: 39px clamp(28px, 3vw, 46px) 36px;
+	border: 1px solid rgba(255, 255, 255, 0.85);
+	border-radius: 23px;
+	background: rgba(255, 255, 255, 0.94);
+	box-shadow: 0 28px 80px rgba(64, 105, 183, 0.14);
+}
+
+.matrix-card-brand {
+	justify-content: center;
+	width: 100%;
+}
+
+.matrix-card-brand .matrix-mark {
+	width: 58px;
+	height: 58px;
+}
+
+.matrix-auth-tabs {
+	display: flex;
+	justify-content: center;
+	gap: 33px;
+	margin: 38px 0 29px;
+}
+
+.matrix-auth-tabs a {
+	min-width: 100px;
+	padding: 0 0 12px;
+	border-bottom: 2px solid #e9edf6;
+	text-align: center;
+	font-size: 18px;
+	font-weight: 700;
+	color: #97a1bb;
+	text-decoration: none;
+}
+
+.matrix-auth-tabs a.active {
+	border-color: var(--matrix-blue);
+	color: var(--matrix-blue);
+}
+
+.matrix-auth-form {
+	color: #23365f;
+}
+
+.matrix-auth-form label {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.matrix-auth-form input:not([type="checkbox"]) {
+	min-height: 50px;
+	border: 1px solid #dae3f2;
+	border-radius: 9px;
+	background: #fff;
+}
+
+.matrix-auth-form input:not([type="checkbox"]):focus {
+	border-color: #5180ff;
+	box-shadow: 0 0 0 3px rgba(56, 103, 255, 0.12);
+}
+
+.matrix-auth-form button {
+	min-height: 44px;
+	border-radius: 9px;
+}
+
+.matrix-auth-form button[type="submit"],
+.matrix-auth-form .matrix-primary-action {
+	min-height: 52px;
+	border-radius: 9px;
+	background: linear-gradient(100deg, #2764ff, #2e6bff);
+	color: #fff;
+	font-weight: 700;
+	box-shadow: 0 10px 20px rgba(47, 101, 248, 0.18);
+}
+
+.matrix-auth-form button[type="submit"]:hover,
+.matrix-auth-form .matrix-primary-action:hover {
+	background: linear-gradient(100deg, #1451ee, #1f5bf3);
+}
+
+.matrix-auth-form > div > .mb-4 .flex.flex-col.gap-2 {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.matrix-auth-form > div > .mb-4 button {
+	border: 1px solid #dbe3f2;
+	background: #fff;
+}
+
+.matrix-auth-form > div > .mb-4::after {
+	content: "或使用邮箱登录";
+	display: block;
+	margin: 26px 0 4px;
+	text-align: center;
+	font-size: 13px;
+	color: #91a0c1;
+}
+
+.matrix-auth-form a {
+	color: #2864f6;
+}
+
+.matrix-auth-footer {
+	display: flex;
+	justify-content: space-between;
+	gap: 20px;
+	padding: 0 clamp(26px, 4.8vw, 82px) 28px;
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.22em;
+	color: #9bacd0;
+}
+
+@media (max-width: 1120px) {
+	.matrix-auth-layout {
+		grid-template-columns: minmax(0, 1fr) minmax(390px, 0.9fr);
+		gap: 28px;
+	}
+
+	.matrix-hero h1 {
+		font-size: 53px;
+	}
+
+	.matrix-feature-icon {
+		width: 52px;
+		height: 52px;
+	}
+
+	.matrix-feature small {
+		font-size: 12px;
+	}
+}
+
+@media (max-width: 850px) {
+	.matrix-auth-page {
+		overflow: auto;
+	}
+
+	.matrix-auth-layout {
+		grid-template-columns: 1fr;
+		padding-top: 36px;
+	}
+
+	.matrix-hero {
+		min-height: 0;
+	}
+
+	.matrix-hero-art,
+	.matrix-features,
+	.matrix-desktop-break {
+		display: none;
+	}
+
+	.matrix-hero h1 {
+		font-size: clamp(39px, 8vw, 60px);
+	}
+
+	.matrix-hero-description {
+		margin-top: 18px;
+	}
+
+	.matrix-auth-card {
+		max-width: 590px;
+		min-height: 0;
+		margin-inline: auto;
+	}
+}
+
+@media (max-width: 520px) {
+	.matrix-auth-header {
+		padding-top: 22px;
+	}
+
+	.matrix-brand-type strong {
+		font-size: 25px;
+	}
+
+	.matrix-brand-type small {
+		font-size: 6px;
+	}
+
+	.matrix-mark {
+		width: 40px;
+		height: 40px;
+	}
+
+	.matrix-mark span {
+		left: 11px;
+		top: 10px;
+		width: 23px;
+		height: 21px;
+		border-width: 7px;
+	}
+
+	.matrix-mark i {
+		width: 15px;
+		height: 15px;
+		right: -6px;
+		top: -6px;
+	}
+
+	.matrix-language {
+		font-size: 0;
+	}
+
+	.matrix-auth-layout {
+		padding-inline: 18px;
+	}
+
+	.matrix-auth-card {
+		padding-inline: 24px;
+	}
+
+	.matrix-auth-form > div > .mb-4 .flex.flex-col.gap-2 {
+		grid-template-columns: 1fr;
+	}
+
+	.matrix-auth-footer {
+		padding-inline: 18px;
+		font-size: 8px;
+	}
+}

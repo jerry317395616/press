@@ -353,7 +353,7 @@ class ProductTrialRequest(Document):
 				{
 					"country": team_details.country,
 					"time_zone": timezone,
-					"language": "en",
+					"language": "简体中文",
 					"currency": team_details.currency,
 					# setup wizard will override currency anyway
 					# but adding this since ERPNext will throw an error otherwise

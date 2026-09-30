@@ -77,7 +77,9 @@ class ProductTrial(Document):
 		plan = frappe.get_doc("Site Plan", self.trial_plan)
 		if plan.document_type != "Site":
 			frappe.throw("Selected plan is not for site")
-		if not plan.is_trial_plan:
+		self_hosted_free_plan = frappe.db.get_single_value("Press Settings", "self_hosted_free_site_plan")
+		is_self_hosted_free_plan = bool(self_hosted_free_plan and plan.name == self_hosted_free_plan)
+		if not plan.is_trial_plan and not is_self_hosted_free_plan:
 			frappe.throw("Selected plan is not a trial plan")
 
 		if not self.redirect_to_after_login.startswith("/"):
@@ -113,7 +115,10 @@ class ProductTrial(Document):
 
 		standby_site = self.get_standby_site(cluster, account_request)
 
-		trial_end_date = frappe.utils.add_days(None, self.trial_days or 14)
+		is_self_hosted_free_plan = self.trial_plan == frappe.db.get_single_value(
+			"Press Settings", "self_hosted_free_site_plan"
+		)
+		trial_end_date = None if is_self_hosted_free_plan else frappe.utils.add_days(None, self.trial_days or 14)
 		agent_jobs = []
 		plan = self.trial_plan
 

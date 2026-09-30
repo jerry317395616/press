@@ -9,8 +9,8 @@
 		}"
 	>
 		<LoginBox
-			title="Select an app to get started"
-			subtitle="Select the app you want to install on your site."
+			title="选择应用开始"
+			subtitle="选择要安装到站点的应用。"
 		>
 			<div v-if="$resources.availableApps.loading">
 				<div class="flex h-40 justify-center">
@@ -19,6 +19,14 @@
 			</div>
 			<div v-else>
 				<div
+					v-if="!$resources.availableApps.data?.length"
+					class="flex h-40 flex-col items-center justify-center text-center text-base text-ink-gray-6"
+				>
+					<p>暂无可安装的应用</p>
+					<p class="mt-1 text-sm">请联系管理员配置可用应用。</p>
+				</div>
+				<div
+					v-else
 					class="flex h-full max-h-96 flex-col items-center space-y-2 overflow-auto py-2"
 				>
 					<div
@@ -36,6 +44,7 @@
 							@click="selectedApp = app"
 						>
 							<img
+								v-if="app.image"
 								:src="app.image"
 								:alt="app.title"
 								class="mr-2 h-8 w-8 rounded"
@@ -51,7 +60,7 @@
 				</div>
 				<Button
 					class="mt-4 w-full"
-					:label="selectedApp ? `Install ${selectedApp.title}` : 'Install app'"
+					:label="selectedApp ? `安装${selectedApp.title}` : '安装应用'"
 					variant="solid"
 					:disabled="!selectedApp"
 					@click="openInstallAppPage(selectedApp)"
@@ -59,7 +68,7 @@
 			</div>
 			<template #footer>
 				<span class="ml-4 text-base font-normal text-ink-gray-6">
-					{{ 'Skip creating a site? ' }}
+					{{ '暂不创建站点？' }}
 				</span>
 				<router-link
 					class="text-base font-normal text-ink-gray-9 underline hover:text-ink-gray-7"
@@ -67,7 +76,7 @@
 						name: 'Site List',
 					}"
 				>
-					Go to Dashboard
+					返回控制台
 				</router-link>
 			</template>
 		</LoginBox>

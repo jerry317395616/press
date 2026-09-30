@@ -238,7 +238,8 @@ RUN --mount=type=cache,target=/home/frappe/.cache,uid=1000,gid=1000 python${PYTH
 
 RUN git config --global advice.detachedHead false
 RUN git config --global url."git://10.144.133.1:9418/frappe-gunicorn.git".insteadOf "https://github.com/frappe/gunicorn" \
-  && git config --global url."git://10.144.133.1:9418/frappe-pypika.git".insteadOf "https://github.com/frappe/pypika"
+  && git config --global url."git://10.144.133.1:9418/frappe-pypika.git".insteadOf "https://github.com/frappe/pypika" \
+  && git config --global url."git://10.144.133.1:9418/air-datepicker.git".insteadOf "https://github.com/frappe/air-datepicker"
 
 ENV PYTHONUNBUFFERED 1
 

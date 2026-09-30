@@ -353,7 +353,9 @@ class ProductTrialRequest(Document):
 				{
 					"country": team_details.country,
 					"time_zone": timezone,
-					"language": "简体中文",
+					# System Settings stores the Language document code; the setup
+					# wizard converts it to the display name for the autocomplete.
+					"language": "zh",
 					"currency": team_details.currency,
 					# setup wizard will override currency anyway
 					# but adding this since ERPNext will throw an error otherwise

@@ -3374,12 +3374,15 @@ class Site(Document, TagHelpers):
 			bench_query = bench_query.orderby(servers.use_for_new_sites, order=frappe.qb.desc)
 
 		if release_group_names:
+			# ``Site`` no longer stores a separate ``version`` field. The selected
+			# release group's version is the compatibility constraint for its benches.
+			site_version = frappe.db.get_value("Release Group", self.group, "version")
 			groups = frappe.qb.DocType("Release Group")
 			bench_query = (
 				bench_query.where(benches.group.isin(release_group_names))
 				.join(groups)
 				.on(benches.group == groups.name)
-				.where(groups.version == self.version)
+				.where(groups.version == site_version)
 			)
 		else:
 			restricted_release_group_names = frappe.db.get_all(

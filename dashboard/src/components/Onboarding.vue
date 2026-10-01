@@ -97,7 +97,7 @@ export default {
 	components: { TextInsideCircle },
 	computed: {
 		accountName() {
-			return this.$team.doc?.email || this.$team.doc?.name || '你的账户';
+			return this.$team.doc?.user || this.$team.doc?.owner || this.$team.doc?.email || this.$team.doc?.name || '你的账户';
 		},
 		pendingSiteRequest() {
 			return this.$team.doc?.pending_site_request;

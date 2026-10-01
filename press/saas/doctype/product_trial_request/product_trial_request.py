@@ -340,7 +340,19 @@ class ProductTrialRequest(Document):
 					"Account Request", {"email": team_user.email}, "geo_location"
 				)
 
-			timezone = frappe.parse_json(account_request_geo_data or {}).get("timezone", "Asia/Kolkata")
+			country = team_details.country or "China"
+			# Keep the first-run setup wizard aligned with the selected country.
+			# Signup geo data can be unavailable or reflect the network location
+			# rather than the user's chosen country.  Chinese accounts should start
+			# with the standard mainland timezone and currency.
+			if country == "China":
+				timezone = "Asia/Shanghai"
+				currency = "CNY"
+			else:
+				timezone = frappe.parse_json(account_request_geo_data or {}).get(
+					"timezone", "Asia/Kolkata"
+				)
+				currency = team_details.currency
 
 			return json.dumps(
 				{
@@ -351,12 +363,12 @@ class ProductTrialRequest(Document):
 				}
 			), json.dumps(
 				{
-					"country": team_details.country,
+					"country": country,
 					"time_zone": timezone,
 					# System Settings stores the Language document code; the setup
 					# wizard converts it to the display name for the autocomplete.
 					"language": "zh",
-					"currency": team_details.currency,
+					"currency": currency,
 					# setup wizard will override currency anyway
 					# but adding this since ERPNext will throw an error otherwise
 				}

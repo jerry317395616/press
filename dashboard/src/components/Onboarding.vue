@@ -95,6 +95,9 @@ import TextInsideCircle from './TextInsideCircle.vue';
 export default {
 	name: 'Onboarding',
 	components: { TextInsideCircle },
+	mounted() {
+		if (typeof this.$team?.reload === 'function') this.$team.reload();
+	},
 	computed: {
 		accountName() {
 			return this.$team.doc?.user || this.$team.doc?.owner || this.$team.doc?.email || this.$team.doc?.name || '你的账户';

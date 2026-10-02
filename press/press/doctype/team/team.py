@@ -241,6 +241,7 @@ class Team(Document):
 		doc.billing_info = self.billing_info()
 		doc.billing_details = self.billing_details()
 		doc.trial_sites = self.get_trial_sites()
+		doc.dashboard_sites = self.get_home_data()["sites"]
 		doc.pending_site_request = self.get_pending_saas_site_request()
 		doc.payment_method = frappe.db.get_value(
 			"Stripe Payment Method",

@@ -3,7 +3,7 @@
 		<div class="w-full overflow-auto">
 			<LoginBox
 				v-if="siteRequestDoc?.status === 'Error'"
-				title="站点创建失败"
+				title="Site creation failed"
 				:subtitle="siteRequestDoc?.domain || siteRequestDoc?.site"
 			>
 				<template v-slot:logo v-if="saasProduct">
@@ -17,13 +17,13 @@
 				<template v-slot:default>
 					<div class="flex h-40 flex-col justify-center">
 						<div class="text-base leading-5 text-ink-gray-8">
-							<p>创建过程中出现问题。</p>
+							<p>It looks like something went wrong!</p>
 							<p class="">
-								请联系
+								Contact
 								<a href="mailto:support@frappe.io" class="underline">
 									support@frappe.io
 								</a>
-								解决问题
+								to resolve the issue
 							</p>
 						</div>
 					</div>
@@ -31,7 +31,7 @@
 			</LoginBox>
 			<LoginBox
 				v-else
-				title="设置你的站点"
+				title="Let's set up your site"
 				:subtitle="siteRequestDoc?.domain || siteRequestDoc?.site"
 			>
 				<template v-slot:logo v-if="saasProduct">
@@ -76,7 +76,7 @@ export default {
 		return {
 			product_trial_request: this.$route.query.product_trial_request,
 			progressCount: 0,
-			currentBuildStep: '正在配置站点',
+			currentBuildStep: 'Configuring your setup',
 		}
 	},
 	resources: {
@@ -123,11 +123,11 @@ export default {
 							}
 
 							const currentStepMap = {
-								'Wait for Site': '正在创建站点',
-								'New Site': '正在创建站点',
-								'Prefilling Setup Wizard': '正在配置站点',
-								'Adding Domain': '正在配置站点',
-								'Site Created': '即将完成',
+								'Wait for Site': 'Creating your site',
+								'New Site': 'Creating your site',
+								'Prefilling Setup Wizard': 'Configuring your site',
+								'Adding Domain': 'Configuring your site',
+								'Site Created': 'Almost there',
 							}
 
 							this.currentBuildStep =
@@ -183,9 +183,9 @@ export default {
 		},
 		currentHelpText() {
 			const defaultHelpTexts = [
-				'使用顶部搜索可以快速查找功能',
-				'所有 Frappe 应用都是开源软件',
-				'创建站点后还可以继续安装其他应用',
+				'Find anything with the Awesome bar',
+				'All Frappe apps are open-source',
+				'You can install more apps later',
 			]
 
 			const productHelpTexts = this.saasProduct?.help_texts
@@ -202,7 +202,7 @@ export default {
 	methods: {
 		showCompleteProgress() {
 			this.progressCount = 100
-			this.currentBuildStep = '即将完成'
+			this.currentBuildStep = 'Almost there'
 		},
 		isSiteProvisioning(status) {
 			return [
@@ -223,7 +223,10 @@ export default {
 				if (reachable) break
 				await new Promise((resolve) => setTimeout(resolve, 3000))
 			}
-			this.$resources.siteRequest.getLoginSid.submit()
+			// The Press welcome page is the account's control plane.  Keep the
+			// site login endpoint available for the manual trial flow, but a
+			// normal signup should land in the welcome page after provisioning.
+			window.location.href = '/dashboard/'
 		},
 	},
 }

@@ -320,6 +320,64 @@ def setup_account(  # noqa: C901
 
 
 @frappe.whitelist()
+def auto_provision_default_site(account_request: str) -> str:
+	"""Start the default self-hosted site after a normal account signup.
+
+	The Product Trial/Agent pipeline is deliberately reused here instead of
+	creating a second provisioning path.  This keeps site creation idempotent
+	and ensures the trial's configured app set is installed by the Agent.
+	"""
+	if not account_request:
+		frappe.throw("Account request is required")
+
+	ar = frappe.get_doc("Account Request", account_request)
+	if frappe.session.user not in ("Administrator", ar.email):
+		frappe.throw("You can only provision your own account")
+	if not ar.team:
+		frappe.throw("The account is not associated with a team yet")
+
+	from press.api.product_trial import _get_active_site, _get_existing_trial_request
+
+	product_name = "frappe"
+	team_name = ar.team
+	if active_site := _get_active_site(product_name, team_name):
+		request = frappe.get_doc(
+			"Product Trial Request",
+			{"product_trial": product_name, "team": team_name, "site": active_site},
+		)
+	elif existing := _get_existing_trial_request(product_name, team_name):
+		request = frappe.get_doc("Product Trial Request", existing.name)
+	else:
+		request = frappe.get_doc(
+			{
+				"doctype": "Product Trial Request",
+				"product_trial": product_name,
+				"team": team_name,
+				"account_request": ar.name,
+			}
+		).insert(ignore_permissions=True)
+
+	if request.status == "Pending":
+		current_user = frappe.session.user
+		try:
+			# create_site performs the same validation and Agent scheduling as the
+			# normal Product Trial page. Elevate only this server-side transition;
+			# the authenticated user remains the owner of the resulting request.
+			frappe.set_user("Administrator")
+			product = frappe.get_doc("Product Trial", product_name)
+			request.create_site(
+				subdomain=product.get_prefilled_subdomain(ar.name),
+				domain=product.domain,
+			)
+		finally:
+			frappe.set_user(current_user)
+
+	if request.status == "Error":
+		frappe.throw(request.error or "Unable to start site creation")
+	return request.name
+
+
+@frappe.whitelist()
 @rate_limit(limit=5, seconds=60 * 60)
 def accept_team_invite(key: str):
 	account_request = get_account_request_from_key(key)

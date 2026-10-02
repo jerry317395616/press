@@ -5,8 +5,8 @@
 	>
 		<div class="w-full overflow-auto">
 			<LoginBox
-				:title="invitedBy ? '邀请加入团队' : '完善您的账号信息'"
-				:subtitle="invitedBy ? `来自 ${invitedBy} 的邀请` : ''"
+				:title="invitedBy ? 'Invitation to join' : 'Let\'s set up your account'"
+				:subtitle="invitedBy ? `Invitation by ${invitedBy}` : ''"
 			>
 				<template v-slot:logo v-if="saasProduct">
 					<div class="flex space-x-2">
@@ -19,7 +19,7 @@
 				<form class="mt-6 flex flex-col" @submit.prevent="submitForm">
 					<template v-if="is2FA">
 						<FormControl
-							label="身份验证器中的双重验证代码"
+							label="2FA Code from your Authenticator App"
 							placeholder="123456"
 							v-model="twoFactorCode"
 							required
@@ -35,7 +35,7 @@
 								})
 							"
 						>
-							验证
+							Verify
 						</Button>
 						<ErrorMessage class="mt-2" :message="$resources.verify2FA.error" />
 					</template>
@@ -44,7 +44,7 @@
 							<template v-if="!userExists">
 								<div class="flex gap-2">
 									<FormControl
-										label="名字"
+										label="First name"
 										type="text"
 										v-model="firstName"
 										name="fname"
@@ -54,7 +54,7 @@
 										:disabled="Boolean(oauthSignup)"
 									/>
 									<FormControl
-										label="姓氏"
+										label="Last name"
 										type="text"
 										v-model="lastName"
 										name="lname"
@@ -66,7 +66,7 @@
 								</div>
 							</template>
 							<FormControl
-								label="电子邮箱"
+								label="Email"
 								type="text"
 								:modelValue="email"
 								variant="outline"
@@ -76,14 +76,14 @@
 								type="select"
 								:options="countryOptions"
 								v-if="!isInvitation"
-								label="国家或地区"
+								label="Country"
 								v-model="country"
 								variant="outline"
 								required
 							/>
 							<PhoneInput
 								v-if="!isInvitation"
-								label="电话"
+								label="Phone"
 								v-model="phoneNumber"
 								:countries="countries"
 								:country="country"
@@ -105,37 +105,42 @@
 							<label
 								for="share-details-consent"
 								class="ml-2 text-base font-normal"
-								>允许向当地合作伙伴分享我的信息</label
+								>Allow my details to be shared with a local partner</label
 							>
 						</div>
 						<ErrorMessage
 							class="mt-4"
 							:message="$resources.acceptInvite.error"
 						/>
+						<ErrorMessage
+							class="mt-4"
+							:message="$resources.autoProvisionDefaultSite.error"
+						/>
 						<Button
 							class="mt-4"
 							variant="solid"
 							:loading="
 								$resources.setupAccount.loading ||
-								$resources.acceptInvite.loading
+								$resources.acceptInvite.loading ||
+								$resources.autoProvisionDefaultSite.loading
 							"
 							type="submit"
 						>
 							{{
-								is2FA ? '验证' : isInvitation ? '接受邀请' : '创建账号'
+								is2FA ? 'Verify' : isInvitation ? 'Accept' : 'Create account'
 							}}
 						</Button>
 					</template>
 				</form>
 				<div class="mt-4" v-if="!is2FA && !isInvitation">
 					<span class="text-base font-normal text-ink-gray-6">
-						{{ '注册即表示您同意我们的 ' }}
+						{{ 'By signing up, you agree to our ' }}
 					</span>
 					<a
 						class="text-base font-normal text-ink-gray-9 underline hover:text-ink-gray-7"
 						href="https://frappecloud.com/policies"
 					>
-						服务条款与政策
+						Terms & Policies
 					</a>
 				</div>
 			</LoginBox>
@@ -145,7 +150,9 @@
 		class="mt-20 px-6 text-center"
 		v-else-if="!$resources.validateRequestKey.loading && !email"
 	>
-		验证链接或验证码无效或已过期。请<Link to="/signup">重新注册</Link>。
+		Verification link or code is invalid or expired.
+		<Link to="/signup">Sign up</Link>
+		for a new account.
 	</div>
 	<div v-else></div>
 </template>
@@ -155,7 +162,6 @@ import LoginBox from '../components/auth/LoginBox.vue';
 import Link from '@/components/Link.vue';
 import Form from '@/components/Form.vue';
 import PhoneInput from '@/components/PhoneInput.vue';
-import { getChineseCountryName } from '@/utils/chineseCountryName.js';
 
 const detailsSharedProducts = [
 	'erpnext',
@@ -188,7 +194,7 @@ export default {
 			isInvitation: null,
 			oauthSignup: 0,
 			oauthDomain: false,
-			country: 'China',
+			country: null,
 			invitedBy: null,
 			invitedByParentTeam: false,
 			countries: [],
@@ -215,7 +221,7 @@ export default {
 						this.email = res.email;
 						this.firstName = res.first_name;
 						this.lastName = res.last_name;
-						this.country = res.is_invitation ? res.country : 'China';
+						this.country = res.country;
 						this.userExists = res.user_exists;
 						this.invitationToTeam = res.team;
 						this.invitedBy = res.invited_by;
@@ -252,16 +258,35 @@ export default {
 					share_details_consent:
 						this.showLeadsConsentCheckbox && this.shareDetailsConsent,
 				},
-				onSuccess() {
+				onSuccess(accountRequest) {
 					let path = '/dashboard/create-site/app-selector';
 					if (this.saasProduct) {
 						path = `/dashboard/create-site/${this.saasProduct.name}/setup`;
 					}
 					if (this.isInvitation) {
 						path = '/dashboard/sites';
+						window.location.href = path;
+						return;
+					}
+					if (!this.saasProduct) {
+						this.$resources.autoProvisionDefaultSite.submit(
+							{ account_request: accountRequest },
+							{
+								onSuccess: (requestName) => {
+									window.location.href =
+										`/dashboard/create-site/frappe/login-to-site?product_trial_request=${encodeURIComponent(requestName)}`;
+								},
+							},
+						);
+						return;
 					}
 					window.location.href = path;
 				},
+			};
+		},
+		autoProvisionDefaultSite() {
+			return {
+				url: 'press.api.account.auto_provision_default_site',
 			};
 		},
 		is2FAEnabled() {
@@ -304,10 +329,7 @@ export default {
 			);
 		},
 		countryOptions() {
-			return this.countries.map((country) => ({
-				label: getChineseCountryName(country),
-				value: country.name,
-			}));
+			return this.countries.map((c) => c.name);
 		},
 	},
 	methods: {

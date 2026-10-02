@@ -41,10 +41,10 @@
 						</div>
 					</div>
 
-					<div class="flex items-center gap-3 rounded-lg border border-outline-gray-2 px-3 py-3" :class="{ 'opacity-60': !trialSite }">
+					<div class="flex items-center gap-3 rounded-lg border border-outline-gray-2 px-3 py-3" :class="{ 'opacity-60': !currentSite }">
 						<TextInsideCircle>3</TextInsideCircle>
 						<div class="min-w-0 flex-1"><div class="text-sm font-medium text-ink-gray-9">初始化完成</div><div class="mt-0.5 text-xs text-ink-gray-7">站点可访问后会显示在这里</div></div>
-						<lucide-check v-if="trialSite" class="h-4 w-4 text-green-600" /><span v-else class="text-xs text-ink-gray-6">待完成</span>
+						<lucide-check v-if="currentSite" class="h-4 w-4 text-green-600" /><span v-else class="text-xs text-ink-gray-6">待完成</span>
 					</div>
 				</div>
 			</section>
@@ -62,10 +62,10 @@
 
 		<section class="mt-5">
 			<div class="mb-2 flex items-center justify-between"><h2 class="text-base font-medium text-ink-gray-9">我的站点</h2><Button route="/sites" variant="ghost" class="text-ink-blue-3">查看全部</Button></div>
-			<div v-if="trialSite" class="rounded-xl border border-outline-gray-2 bg-surface-white p-5 shadow-sm">
+			<div v-if="currentSite" class="rounded-xl border border-outline-gray-2 bg-surface-white p-5 shadow-sm">
 				<div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-					<div class="flex items-center gap-3"><div class="grid h-10 w-10 place-items-center rounded-lg bg-green-50 text-green-700">☁</div><div><div class="flex items-center gap-2 text-sm font-medium text-ink-gray-9">{{ trialSite.host_name || trialSite.name }}<span class="rounded-full bg-green-50 px-2 py-0.5 text-xs text-green-700">运行中</span></div><div class="mt-1 text-xs text-ink-gray-7">Frappe v17 · 中国区 · 最近刚刚更新</div></div></div>
-					<div class="flex gap-2"><a class="rounded-md border border-outline-gray-2 px-3 py-2 text-xs font-medium text-ink-gray-8 hover:bg-surface-gray-1" :href="`https://${trialSite.host_name || trialSite.name}`" target="_blank">打开站点</a><Button route="/sites" variant="solid">管理站点</Button></div>
+					<div class="flex items-center gap-3"><div class="grid h-10 w-10 place-items-center rounded-lg bg-green-50 text-green-700">☁</div><div><div class="flex items-center gap-2 text-sm font-medium text-ink-gray-9">{{ currentSite.host_name || currentSite.name }}<span class="rounded-full bg-green-50 px-2 py-0.5 text-xs text-green-700">{{ siteStatus }}</span></div><div class="mt-1 text-xs text-ink-gray-7">Frappe v17 · 中国区 · 最近刚刚更新</div></div></div>
+					<div class="flex gap-2"><a class="rounded-md border border-outline-gray-2 px-3 py-2 text-xs font-medium text-ink-gray-8 hover:bg-surface-gray-1" :href="`https://${currentSite.host_name || currentSite.name}`" target="_blank">打开站点</a><Button route="/sites" variant="solid">管理站点</Button></div>
 				</div>
 			</div>
 
@@ -90,7 +90,17 @@
 </template>
 
 <script>
+import { createListResource } from 'frappe-ui';
 import TextInsideCircle from './TextInsideCircle.vue';
+
+const teamSites = createListResource({
+	doctype: 'Site',
+	auto: true,
+	fields: ['name', 'host_name', 'status', 'modified'],
+	filters: { status: ['!=', 'Archived'] },
+	orderBy: 'modified desc',
+	pageLength: 1,
+});
 
 export default {
 	name: 'Onboarding',
@@ -102,14 +112,25 @@ export default {
 		pendingSiteRequest() {
 			return this.$team.doc?.pending_site_request;
 		},
-		trialSite() {
-			return this.$team.doc?.trial_sites?.[0];
+		currentSite() {
+			return teamSites.data?.[0];
 		},
 		progressValue() {
-			return this.trialSite ? 100 : 42;
+			return this.currentSite ? 100 : 42;
 		},
 		progressLabel() {
-			return this.trialSite ? '已完成' : '进行中';
+			return this.currentSite ? '已完成' : '进行中';
+		},
+		siteStatus() {
+			const labels = {
+				Active: '运行中',
+				Installing: '安装中',
+				Updating: '更新中',
+				Inactive: '未启用',
+				Suspended: '已暂停',
+				Broken: '异常',
+			};
+			return labels[this.currentSite?.status] || this.currentSite?.status || '运行中';
 		},
 		defaults() {
 			return [

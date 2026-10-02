@@ -333,13 +333,15 @@ def auto_provision_default_site(account_request: str) -> str:
 	ar = frappe.get_doc("Account Request", account_request)
 	if frappe.session.user not in ("Administrator", ar.email):
 		frappe.throw("You can only provision your own account")
-	if not ar.team:
+	team_name = ar.team if frappe.db.exists("Team", ar.team) else frappe.db.get_value(
+		"Team", {"user": ar.email}, "name"
+	)
+	if not team_name:
 		frappe.throw("The account is not associated with a team yet")
 
 	from press.api.product_trial import _get_active_site, _get_existing_trial_request
 
 	product_name = "frappe"
-	team_name = ar.team
 	if active_site := _get_active_site(product_name, team_name):
 		request = frappe.get_doc(
 			"Product Trial Request",

@@ -90,21 +90,28 @@
 </template>
 
 <script>
-import { createListResource } from 'frappe-ui';
 import TextInsideCircle from './TextInsideCircle.vue';
-
-const teamSites = createListResource({
-	doctype: 'Site',
-	auto: true,
-	fields: ['name', 'host_name', 'status', 'modified'],
-	filters: { status: ['!=', 'Archived'] },
-	orderBy: 'modified desc',
-	pageLength: 1,
-});
 
 export default {
 	name: 'Onboarding',
 	components: { TextInsideCircle },
+	resources: {
+		home() {
+			if (!this.$team.doc?.name) return;
+			return {
+				url: 'press.api.client.run_doc_method',
+				cache: ['home_data', this.$team.doc.name],
+				makeParams() {
+					return {
+						dt: 'Team',
+						dn: this.$team.doc.name,
+						method: 'get_home_data',
+					};
+				},
+				auto: true,
+			};
+		},
+	},
 	computed: {
 		accountName() {
 			return this.$team.doc?.user || this.$team.doc?.owner || this.$team.doc?.email || this.$team.doc?.name || '你的账户';
@@ -113,7 +120,7 @@ export default {
 			return this.$team.doc?.pending_site_request;
 		},
 		currentSite() {
-			return teamSites.data?.[0];
+			return this.$resources.home.data?.message?.sites?.[0];
 		},
 		progressValue() {
 			return this.currentSite ? 100 : 42;

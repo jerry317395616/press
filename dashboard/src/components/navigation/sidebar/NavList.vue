@@ -152,7 +152,7 @@ const list = computed(() => {
 			icon: LucideWalletCards,
 			route: '/billing',
 			isActive: routeName.startsWith('Billing'),
-			condition: $team.doc?.is_desk_user || $session.hasBillingAccess,
+			condition: !window.self_hosted_free_mode && ($team.doc?.is_desk_user || $session.hasBillingAccess),
 			disabled: enforce2FA,
 		},
 

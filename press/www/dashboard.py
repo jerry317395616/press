@@ -53,6 +53,9 @@ def get_boot():
 		valid_teams=get_valid_teams_for_user(frappe.session.user),
 		chat_enabled=chat_enabled(),
 		is_system_user=frappe.session.data.user_type == "System User",
+		self_hosted_free_mode=bool(
+			frappe.db.get_single_value("Press Settings", "self_hosted_free_site_plan")
+		),
 		verify_cards_with_micro_charge=frappe.db.get_single_value(
 			"Press Settings", "verify_cards_with_micro_charge"
 		),

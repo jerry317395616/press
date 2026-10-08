@@ -166,6 +166,44 @@ class TestTeam(FrappeTestCase):
 		team_count_after = frappe.db.count("Team")
 		self.assertGreater(team_count_after, team_count_before)
 
+	def test_self_hosted_signup_creates_free_team_without_billing(self):
+		frappe.db.set_single_value("Press Settings", "self_hosted_free_site_plan", "Self-Hosted Free")
+		email = f"free-{frappe.generate_hash(length=8)}@example.com"
+		with patch("press.utils.disposable_emails.domains", return_value=[]):
+			account_request = create_test_account_request("free-site", email=email, erpnext=False)
+		with (
+			patch.object(Team, "create_stripe_customer", side_effect=AssertionError("Stripe called")),
+			patch.object(Team, "create_upcoming_invoice", side_effect=AssertionError("Invoice called")),
+		):
+			team = Team.create_new(account_request, "Free", "User", country="China")
+
+		self.assertEqual(team.free_account, 1)
+		self.assertEqual(team.self_hosted_free_account, 1)
+		self.assertFalse(team.payment_mode)
+		self.assertEqual(frappe.db.get_value("User", account_request.email, "user_type"), "Website User")
+
+	def test_self_hosted_free_team_can_create_only_one_active_site(self):
+		team = frappe.new_doc("Team")
+		team.name = "free-team"
+		team.enabled = 1
+		team.free_account = 1
+		team.self_hosted_free_account = 1
+		team.apply_limits = 0
+		with (
+			patch.object(Team, "has_unpaid_invoices", return_value=False),
+			patch.object(frappe.db, "count", return_value=0),
+		):
+			self.assertEqual(team.can_create_site(), (True, ""))
+		with (
+			patch.object(Team, "has_unpaid_invoices", return_value=False),
+			patch.object(frappe.db, "count", return_value=1),
+		):
+			self.assertEqual(
+				team.can_create_site(),
+				(False, "A free account can host one active site."),
+			)
+		self.assertFalse(team.can_install_paid_apps())
+
 	def test_new_team_has_correct_billing_name(self):
 		account_request = create_test_account_request("testsubdomain")
 		with patch.object(Team, "create_stripe_customer"):

@@ -45,6 +45,13 @@ if TYPE_CHECKING:
 	from press.press.doctype.user_2fa_recovery_code import User2FARecoveryCode
 
 
+def has_outgoing_email() -> bool:
+	return bool(
+		frappe.conf.get("mail_server")
+		or frappe.db.exists("Email Account", {"enable_outgoing": 1, "default_outgoing": 1})
+	)
+
+
 @frappe.whitelist(allow_guest=True)
 @rate_limit(limit=5, seconds=60 * 60)
 def signup(
@@ -60,6 +67,12 @@ def signup(
 		frappe.throw(_("Account {0} has been deactivated").format(email))
 	elif exists and enabled:
 		frappe.throw(_("Account {0} is already registered").format(email))
+	if (
+		frappe.db.get_single_value("Press Settings", "self_hosted_free_site_plan")
+		and not product
+		and not has_outgoing_email()
+	):
+		frappe.throw("发件邮箱尚未配置。请联系管理员。")
 
 	account_request = frappe.db.get_value(
 		"Account Request",
@@ -307,6 +320,62 @@ def setup_account(  # noqa: C901
 	account_request.db_set("request_key", None)
 
 	return account_request.name
+
+
+@frappe.whitelist()
+def auto_provision_default_site(account_request: str) -> str:
+	"""Start the default self-hosted site after a normal account signup.
+
+	The Product Trial/Agent pipeline is reused here so site creation remains
+	idempotent and installs the configured app set through the Agent.
+	"""
+	if not account_request:
+		frappe.throw("Account request is required")
+
+	ar = frappe.get_doc("Account Request", account_request)
+	if frappe.session.user not in ("Administrator", ar.email):
+		frappe.throw("You can only provision your own account")
+	team_name = ar.team if frappe.db.exists("Team", ar.team) else frappe.db.get_value(
+		"Team", {"user": ar.email}, "name"
+	)
+	if not team_name:
+		frappe.throw("The account is not associated with a team yet")
+
+	from press.api.product_trial import _get_active_site, _get_existing_trial_request
+
+	product_name = "frappe"
+	if active_site := _get_active_site(product_name, team_name):
+		request = frappe.get_doc(
+			"Product Trial Request",
+			{"product_trial": product_name, "team": team_name, "site": active_site},
+		)
+	elif existing := _get_existing_trial_request(product_name, team_name):
+		request = frappe.get_doc("Product Trial Request", existing.name)
+	else:
+		request = frappe.get_doc(
+			{
+				"doctype": "Product Trial Request",
+				"product_trial": product_name,
+				"team": team_name,
+				"account_request": ar.name,
+			}
+		).insert(ignore_permissions=True)
+
+	if request.status == "Pending":
+		current_user = frappe.session.user
+		try:
+			frappe.set_user("Administrator")
+			product = frappe.get_doc("Product Trial", product_name)
+			request.create_site(
+				subdomain=product.get_prefilled_subdomain(ar.name),
+				domain=product.domain,
+			)
+		finally:
+			frappe.set_user(current_user)
+
+	if request.status == "Error":
+		frappe.throw(request.error or "Unable to start site creation")
+	return request.name
 
 
 @frappe.whitelist()

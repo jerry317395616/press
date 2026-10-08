@@ -2,8 +2,8 @@
 	<div class="flex h-screen overflow-hidden">
 		<div class="w-full overflow-auto">
 			<LoginBox
-				title="Let's set up your site"
-				subtitle="Enter site name to set up your site"
+				title="设置你的站点"
+				subtitle="输入站点名称，开始创建站点"
 			>
 				<template v-slot:logo v-if="saasProduct">
 					<div class="flex space-x-2">
@@ -16,9 +16,9 @@
 				<form class="mt-6 flex flex-col" @submit.prevent="createSite">
 					<div class="w-full space-y-1.5">
 						<div class="flex items-center gap-2">
-							<label class="block text-xs text-ink-gray-5"> Site name </label>
+							<label class="block text-xs text-ink-gray-5">站点名称</label>
 							<Tooltip
-								text="You will be able to access your site via your site name"
+								text="创建后可通过站点名称访问"
 							>
 								<lucide-info class="h-4 w-4 text-ink-gray-5" />
 							</Tooltip>
@@ -28,7 +28,7 @@
 								id="subdomain"
 								class="dark:[color-scheme:dark] z-10 h-7 w-full rounded rounded-r-none border border-outline-gray-2 bg-surface-white py-1.5 pl-2 pr-2 text-base text-ink-gray-8 placeholder-ink-gray-4 transition-colors hover:border-outline-gray-3 hover:shadow-sm focus:border-outline-gray-4 focus:bg-surface-white focus:shadow-sm focus:ring-0 focus-visible:ring-2 focus-visible:ring-outline-gray-3"
 								:placeholder="
-									saasProduct ? `${saasProduct?.name}-site` : 'company-name'
+									saasProduct ? `${saasProduct?.name}-site` : '站点名称'
 								"
 								v-model="subdomain"
 								data-record="true"
@@ -42,8 +42,7 @@
 						</div>
 						<div class="mt-1">
 							<div v-if="!subdomain" class="text-xs text-ink-gray-5">
-								Enter a site name (5-32 chars, lowercase letters, numbers,
-								hyphens).
+								请输入站点名称（5–32 个字符，仅限小写字母、数字和连字符）。
 							</div>
 							<ErrorMessage v-else :message="subdomainError" />
 						</div>
@@ -57,9 +56,9 @@
 							$resources.createSite?.loading
 						"
 						variant="solid"
-						label="Create site"
+						label="创建站点"
 						:loading="findingClosestServer || $resources.createSite?.loading"
-						:loadingText="'Creating site...'"
+						:loadingText="'正在创建站点…'"
 						type="submit"
 					/>
 				</form>

@@ -24,6 +24,7 @@ import { clusterOptions } from '@/objects/common'
 import { renderDialog } from '@/utils/components'
 import { userCurrency } from '@/utils/format'
 import { getSiteStatusBadge, trialDays } from '@/utils/site'
+import { translateUiText } from '@/i18n'
 
 const statusOptions = [
 	'Installing',
@@ -33,7 +34,7 @@ const statusOptions = [
 	'Broken',
 	'Archived',
 ].map((label) => ({
-	label,
+	label: translateUiText(label),
 	value: label,
 }))
 const regionOptions = clusterOptions.filter(Boolean)
@@ -169,7 +170,7 @@ watch(
 )
 
 const moreActions = [
-	{ label: 'Export as CSV', icon: 'download', onClick: () => exportCSV() },
+	{ label: '导出 CSV', icon: 'download', onClick: () => exportCSV() },
 ]
 
 const applyFilter = (key: string, value: any) => {
@@ -193,9 +194,9 @@ const sitePlan = (row: any) => {
 			india ? row.price_inr : row.price_usd,
 			0,
 		)
-		return `${formattedValue}/mo`
+		return `${formattedValue}/月`
 	}
-	return row.plan_title
+	return translateUiText(row.plan_title)
 }
 
 const dropSite = (site: any) => {
@@ -225,12 +226,12 @@ const dropSite = (site: any) => {
 const siteOptions = (site: any) => {
 	return [
 		{
-			label: 'Site Actions',
+			label: '站点操作',
 			route: { name: 'Site Detail Actions', params: { name: site.name } },
 			icon: LucideSlidersVertical,
 		},
 		{
-			label: 'Drop site',
+			label: '归档站点',
 			theme: 'red',
 			variant: 'subtle',
 			icon: 'trash-2',
@@ -273,7 +274,7 @@ const exportCSV = () => {
 <template>
 	<div class="flex flex-col h-dvh">
 		<Header class="bg-surface-white shrink-0">
-			<Breadcrumbs :items="[{ label: 'Sites', route: '/sites' }]" />
+			<Breadcrumbs :items="[{ label: '站点', route: '/sites' }]" />
 			<Button
 				class="ml-auto mr-2"
 				:loading="sites.list?.loading"
@@ -283,11 +284,11 @@ const exportCSV = () => {
 			</Button>
 			<Button class="mr-2" :route="{ name: 'New Site' }" variant="solid">
 				<template #prefix><lucide-plus class="size-4" /></template>
-				New Site
+				新建站点
 			</Button>
 			<Dropdown :options="moreActions">
 				<Button>
-					Actions
+					操作
 					<template #suffix><LucideChevronsUpDown class="size-4" /></template>
 				</Button>
 			</Dropdown>
@@ -299,14 +300,14 @@ const exportCSV = () => {
 
 		<div v-if="showsArchivedFallback" class="px-5 pt-4">
 			<AlertBanner
-				title="Your team has no live sites. This page shows your archived sites."
+				title="当前团队没有运行中的站点，正在显示已归档站点。"
 				type="info"
 			/>
 		</div>
 
 		<div class="flex items-center gap-2 px-5 pb-3 overflow-auto">
 			<TextInput
-				placeholder="Search sites"
+				placeholder="搜索站点"
 				class="w-56 shrink-0"
 				:debounce="500"
 				@update:modelValue="v => applyFilter('_search', v || undefined)"
@@ -317,7 +318,7 @@ const exportCSV = () => {
 			</TextInput>
 
 			<MultiSelect
-				placeholder="Status"
+				placeholder="状态"
 				class="!w-36 shrink-0 status-multiselect *:text-ink-gray-5"
 				:options="statusOptions"
 				:modelValue="selectedStatuses"
@@ -347,7 +348,7 @@ const exportCSV = () => {
 			</MultiSelect>
 
 			<LinkControl
-				placeholder="Version"
+				placeholder="版本"
 				class="!w-36 shrink-0"
 				:options="{ doctype: 'Frappe Version' }"
 				:modelValue="sites.filters?.['group.version']"
@@ -355,7 +356,7 @@ const exportCSV = () => {
 			/>
 
 			<LinkControl
-				placeholder="Benches"
+				placeholder="运行环境"
 				class="!w-36 shrink-0"
 				:options="{ doctype: 'Release Group' }"
 				:modelValue="sites.filters?.group"
@@ -363,7 +364,7 @@ const exportCSV = () => {
 			/>
 
 			<Combobox
-				placeholder="Region"
+				placeholder="区域"
 				class="!w-36 shrink-0"
 				:openOnFocus="true"
 				:options="regionOptions"
@@ -375,7 +376,7 @@ const exportCSV = () => {
 			</Combobox>
 
 			<LinkControl
-				placeholder="Tag"
+				placeholder="标签"
 				class="!w-32 shrink-0"
 				:options="{ doctype: 'Press Tag', filters: { doctype_name: 'Site' } }"
 				:modelValue="sites.filters?.['tags.tag']"
@@ -387,12 +388,12 @@ const exportCSV = () => {
 			<table class="sites-table w-full">
 				<thead class="text-ink-gray-5 text-sm">
 					<tr>
-						<th class="rounded-l">Site</th>
-						<th>Status</th>
-						<th>Plan</th>
-						<th>Region</th>
-						<th>Benches</th>
-						<th>Version</th>
+						<th class="rounded-l">站点</th>
+						<th>状态</th>
+						<th>方案</th>
+						<th>区域</th>
+						<th>运行环境</th>
+						<th>版本</th>
 						<th class="rounded-r"></th>
 					</tr>
 				</thead>
@@ -408,8 +409,9 @@ const exportCSV = () => {
 
 					<tr v-for="site in sites.data" :key="site.name" class="*:border-b">
 						<td class="font-medium">
-							<Tooltip text="Go to site dashboard">
+							<Tooltip text="查看站点概览">
 								<router-link
+									data-no-translate
 									class="flex gap-2 w-fit items-center hover:underline"
 									:to="{ name: 'Site Detail', params: { name: site.name } }"
 								>
@@ -428,7 +430,7 @@ const exportCSV = () => {
 									class="size-1.5 rounded-full shrink-0 mr-0.5"
 									:class="getSiteStatusBadge(site.status).dot"
 								/>
-								{{ site.status }}
+								{{ translateUiText(site.status) }}
 							</Badge>
 						</td>
 
@@ -446,9 +448,9 @@ const exportCSV = () => {
 						</td>
 
 						<td>
-							{{ site.group_public ? 'Shared' : site.group_title }}
+							{{ site.group_public ? '共享' : site.group_title }}
 						</td>
-						<td>{{ site.version }}</td>
+						<td>{{ translateUiText(site.version) }}</td>
 
 						<td class="w-px">
 							<div class="flex justify-end">
@@ -467,21 +469,20 @@ const exportCSV = () => {
 				v-if="!sites.list?.loading && !sites.data?.length"
 				class="py-10 text-center text-sm text-ink-gray-5"
 			>
-				No sites
+				暂无站点
 			</div>
 		</Scrollbar>
 
 		<div class="shrink-0 px-5 py-2 flex justify-end items-center gap-3">
 			<span class="text-sm text-ink-gray-5">
-				Total {{ sitesCount.data?.length ?? 0 }}
-				{{ sitesCount.data?.length === 1 ? 'site' : 'sites' }}
+				共 {{ sitesCount.data?.length ?? 0 }} 个站点
 			</span>
 			<Button
 				v-if="sites.hasNextPage"
 				:loading="sites.list?.loading"
 				@click="sites.next()"
 			>
-				Load more
+				加载更多
 			</Button>
 		</div>
 	</div>

@@ -1,7 +1,6 @@
 <template>
-	<div class="flex h-screen overflow-hidden">
-		<div class="w-full overflow-auto">
-			<LoginBox
+	<div>
+			<MatrixAuthShell
 				:title="title"
 				:subtitle="subtitle"
 				:class="{ 'pointer-events-none': $resources.signup.loading }"
@@ -21,7 +20,7 @@
 									}"
 									icon-left="key"
 								>
-									Continue with password
+									使用密码登录
 								</Button>
 								<Button
 									v-else-if="isLogin && usePassword"
@@ -31,7 +30,7 @@
 									}"
 									icon-left="mail"
 								>
-									Continue with verification code
+									使用验证码登录
 								</Button>
 								<Button
 									:loading="$resources.googleLogin.loading"
@@ -39,7 +38,7 @@
 								>
 									<div class="flex items-center">
 										<GoogleIcon class="w-4" />
-										<span class="ml-2">Continue with Google</span>
+										<span class="ml-2">使用 Google 登录</span>
 									</div>
 								</Button>
 							</div>
@@ -48,7 +47,7 @@
 							<!-- 2FA Section -->
 							<template v-if="is2FA && !is2FARecovery">
 								<FormControl
-									label="2FA Code from your Authenticator App"
+									label="身份验证器中的双重验证代码"
 									placeholder="123456"
 									v-model="twoFactorCode"
 									variant="outline"
@@ -59,8 +58,8 @@
 									:message="$resources.verify2FA.error"
 								/>
 								<Button
-									class="mt-4"
-									label="Verify"
+									class="matrix-primary-action mt-4"
+									label="验证"
 									variant="solid"
 									:loading="
 										$resources.verify2FA.loading ||
@@ -78,7 +77,7 @@
 								<Button
 									class="mt-2"
 									variant="ghost"
-									label="Reset 2FA"
+									label="重置双重验证"
 									@click="on2FARecovery = true"
 								/>
 							</template>
@@ -86,7 +85,7 @@
 							<!-- 2FA Recovery Section -->
 							<template v-else-if="is2FARecovery">
 								<FormControl
-									label="Recovery Code"
+									label="恢复代码"
 									placeholder="C6BD7F3DC3C5777D"
 									v-model="twoFactorRecoveryCode"
 									variant="outline"
@@ -97,8 +96,8 @@
 									:message="$resources.recover2FA.error"
 								/>
 								<Button
-									class="mt-4"
-									label="Reset"
+									class="matrix-primary-action mt-4"
+									label="重置"
 									variant="solid"
 									:loading="
 										$resources.verify2FA.loading ||
@@ -116,7 +115,7 @@
 								<Button
 									class="mt-2"
 									variant="ghost"
-									label="Back to 2FA Verification"
+									label="返回双重验证"
 									@click="on2FARecovery = false"
 								/>
 							</template>
@@ -124,7 +123,7 @@
 							<!-- Forgot Password Section -->
 							<template v-else-if="hasForgotPassword">
 								<FormControl
-									label="Email"
+									label="邮箱地址"
 									type="email"
 									placeholder="johndoe@mail.com"
 									autocomplete="email"
@@ -140,22 +139,22 @@
 										query: { ...$route.query, forgot: undefined },
 									}"
 								>
-									I remember my password
+									返回密码登录
 								</router-link>
 								<Button
 									type="submit"
-									class="mt-4"
+									class="matrix-primary-action mt-4"
 									:loading="$resources.resetPassword.loading"
 									variant="solid"
 								>
-									Reset Password
+									重置密码
 								</Button>
 							</template>
 
 							<!-- Login Section -->
 							<template v-else-if="isLogin">
 								<FormControl
-									label="Email"
+									label="邮箱地址"
 									placeholder="johndoe@mail.com"
 									autocomplete="email"
 									v-model="email"
@@ -167,12 +166,12 @@
 									v-if="emailHasCapitalLetters"
 									class="mt-2 text-sm text-yellow-700"
 								>
-									The email you entered has capital letters
+									邮箱地址中包含大写字母
 								</p>
 								<!-- OAuth Authentication -->
 								<template v-if="isOauthLogin && !usePassword">
-									<Button class="mt-4" variant="solid" type="submit">
-										Log in with {{ oauthProviderName }}
+									<Button class="matrix-primary-action mt-4" variant="solid" type="submit">
+										使用 {{ oauthProviderName }} 登录
 									</Button>
 								</template>
 
@@ -180,7 +179,7 @@
 								<template v-if="!isOauthLogin && usePassword">
 									<FormControl
 										class="mt-4"
-										label="Password"
+										label="密码"
 										type="password"
 										placeholder="•••••"
 										v-model="password"
@@ -197,16 +196,16 @@
 												query: { ...$route.query, forgot: 1 },
 											}"
 										>
-											Forgot Password?
+											忘记密码？
 										</router-link>
 									</div>
 									<Button
-										class="mt-4"
+										class="matrix-primary-action mt-4"
 										variant="solid"
 										:loading="$session.login.loading"
 										type="submit"
 									>
-										Log In
+										登录
 									</Button>
 								</template>
 
@@ -216,7 +215,7 @@
 									<template v-if="otpSent">
 										<FormControl
 											class="mt-4"
-											label="Verification code"
+											label="验证码"
 											placeholder="123456"
 											variant="outline"
 											ref="otpInput"
@@ -225,12 +224,12 @@
 										/>
 										<div class="mt-4 space-y-2">
 											<Button
-												class="w-full"
+												class="matrix-primary-action w-full"
 												:loading="$resources.verifyOTPAndLogin.loading"
 												variant="solid"
 												@click="verifyOTPAndLogin"
 											>
-												Submit verification code
+												提交验证码
 											</Button>
 											<Button
 												class="w-full"
@@ -239,10 +238,10 @@
 												:disabled="otpResendCountdown > 0"
 												@click="$resources.sendOTP.submit()"
 											>
-												Resend verification code
+												重新发送验证码
 												{{
 													otpResendCountdown > 0
-														? `in ${otpResendCountdown} seconds`
+														? `${otpResendCountdown} 秒后可重发`
 														: ''
 												}}
 											</Button>
@@ -252,12 +251,12 @@
 									<!-- Initial OTP Request Button -->
 									<template v-else>
 										<Button
-											class="mt-4"
+											class="matrix-primary-action mt-4"
 											:loading="$resources.sendOTP.loading"
 											variant="solid"
 											@click="$resources.sendOTP.submit()"
 										>
-											Send verification code
+											发送验证码
 										</Button>
 									</template>
 								</template>
@@ -277,7 +276,7 @@
 							<!-- Signup Section -->
 							<template v-else>
 								<FormControl
-									label="Email"
+									label="邮箱地址"
 									type="email"
 									placeholder="johndoe@mail.com"
 									autocomplete="email"
@@ -286,12 +285,12 @@
 									required
 								/>
 								<Button
-									class="mt-4"
+									class="matrix-primary-action mt-4"
 									:loading="$resources.signup.loading"
 									variant="solid"
 									type="submit"
 								>
-									Sign up with email
+									使用邮箱注册
 								</Button>
 							</template>
 
@@ -303,21 +302,21 @@
 						>
 							<div class="text-p-base" v-if="$route.name === 'Signup'">
 								<span class="text-ink-gray-6">
-									{{ 'By signing up, you agree to our ' }}
+									{{ '注册即表示您同意我们的 ' }}
 								</span>
 								<a
 									class="text-ink-gray-9 underline hover:text-ink-gray-7"
 									href="https://frappecloud.com/policies"
 								>
-									Terms & Policies
+									服务条款与政策
 								</a>
 							</div>
 							<div class="mt-2" v-if="!(otpRequested || resetPasswordEmailSent)">
 								<span class="text-p-base text-ink-gray-6">
 									{{
 										$route.name == 'Login'
-											? 'New member? '
-											: 'Already have an account? '
+											? '还没有账号？'
+											: '已有账号？'
 									}}
 								</span>
 								<router-link
@@ -328,7 +327,7 @@
 									}"
 								>
 									{{
-										$route.name == 'Login' ? 'Create a new account.' : 'Log in.'
+										$route.name == 'Login' ? '立即注册' : '登录'
 									}}
 								</router-link>
 							</div>
@@ -337,7 +336,7 @@
 					<div v-else-if="otpRequested">
 						<form class="flex flex-col">
 							<FormControl
-								label="Email"
+								label="邮箱地址"
 								type="email"
 								placeholder="johndoe@mail.com"
 								autocomplete="email"
@@ -346,7 +345,7 @@
 								required
 							/>
 							<FormControl
-								label="Verification code"
+								label="验证码"
 								type="text"
 								class="mt-4"
 								placeholder="123456"
@@ -361,12 +360,12 @@
 							/>
 							<Button
 								type="submit"
-								class="mt-4"
+								class="matrix-primary-action mt-4"
 								variant="solid"
 								:loading="$resources.verifyOTP.loading"
 								@click="$resources.verifyOTP.submit()"
 							>
-								Verify
+								验证
 							</Button>
 							<Button
 								class="mt-2"
@@ -375,10 +374,10 @@
 								@click="$resources.resendOTP.submit()"
 								:disabled="otpResendCountdown > 0"
 							>
-								Resend verification code
+								重新发送验证码
 								{{
 									otpResendCountdown > 0
-										? `in ${otpResendCountdown} seconds`
+									? `${otpResendCountdown} 秒后可重发`
 										: ''
 								}}
 							</Button>
@@ -386,21 +385,21 @@
 						<div class="mt-4 space-y-2">
 							<div v-if="$route.name === 'Signup'">
 								<span class="text-base font-normal text-ink-gray-6">
-									{{ 'By signing up, you agree to our ' }}
+									{{ '注册即表示您同意我们的 ' }}
 								</span>
 								<a
 									class="text-base font-normal text-ink-gray-9 underline hover:text-ink-gray-7"
 									href="https://frappecloud.com/policies"
 								>
-									Terms & Policies
+									服务条款与政策
 								</a>
 							</div>
 							<div>
 								<span class="text-base font-normal text-ink-gray-6">
 									{{
 										$route.name == 'Login'
-											? 'New member? '
-											: 'Already have an account? '
+											? '还没有账号？'
+											: '已有账号？'
 									}}
 								</span>
 								<router-link
@@ -411,7 +410,7 @@
 									}"
 								>
 									{{
-										$route.name == 'Login' ? 'Create a new account.' : 'Log in.'
+										$route.name == 'Login' ? '立即注册' : '登录'
 									}}
 								</router-link>
 							</div>
@@ -422,27 +421,24 @@
 						v-else-if="resetPasswordEmailSent"
 					>
 						<p>
-							You will receive an email with instructions to reset your password
-							if an account with the provided email (<span
+							如果所填邮箱（<span
 								class="font-medium"
 								>{{ email }}</span
-							>) exists.
+							>）对应的账号存在，您会收到重置密码的邮件。
 						</p>
 					</div>
 				</template>
 
-			</LoginBox>
-		</div>
+			</MatrixAuthShell>
 
 		<Dialog
 			v-model="showReactivateAccountDialog"
-			:options="{ title: 'Reactivate Account', size :'sm' }"
+			:options="{ title: '重新启用账号', size :'sm' }"
 			@close="cancelReactivation"
 		>
 			<template v-slot:body-content>
 				<p class="text-p-base text-ink-gray-7">
-					This account is disabled. Reactivating restores your account and
-					resumes billing.
+					此账号已停用。重新启用后，账号和计费将恢复。
 				</p>
 				<ErrorMessage
 					class="mt-2"
@@ -452,13 +448,13 @@
 
 			<template v-slot:actions>
 				<div class="flex justify-end gap-2">
-					<Button @click="cancelReactivation">Cancel</Button>
+					<Button @click="cancelReactivation">取消</Button>
 					<Button
 						variant="solid"
 						:loading="$resources.reactivateAccount.loading"
 						@click="$resources.reactivateAccount.submit()"
 					>
-						Reactivate
+						重新启用
 					</Button>
 				</div>
 			</template>
@@ -467,7 +463,7 @@
 </template>
 
 <script>
-import LoginBox from '../components/auth/LoginBox.vue';
+import MatrixAuthShell from '../components/auth/MatrixAuthShell.vue';
 import { getAnonymousId } from '@/telemetry/pulse.js';
 import GoogleIconSolid from '@/components/icons/GoogleIconSolid.vue';
 import GoogleIcon from '@/components/icons/GoogleIcon.vue';
@@ -480,7 +476,7 @@ import CustomToast from '../components/CustomToast.vue';
 export default {
 	name: 'Signup',
 	components: {
-		LoginBox,
+		MatrixAuthShell,
 		GoogleIcon,
 		CustomToast,
 	},
@@ -962,22 +958,22 @@ export default {
 		},
 		title() {
 			if (this.hasForgotPassword) {
-				return 'Reset password';
+				return '重置密码';
 			} else if (this.otpRequested) {
-				return 'Verify your email address';
+				return '验证邮箱地址';
 			} else if (this.isLogin) {
-				return 'Log in to your Frappe Cloud account';
+				return '登录 Matrix 账号';
 			}
-			return 'Signup to your Frappe Cloud account';
+			return '注册 Matrix 账号';
 		},
 		subtitle() {
 			if (this.hasForgotPassword) {
-				return 'Enter your email address to reset your password';
+				return '填写邮箱地址以重置密码';
 			} else if (this.isLogin) {
-				return 'Get started and explore the easiest way to use all Frappe apps';
+				return '登录后开始使用平台服务';
 			}
 
-			return 'Hosting platform for Frappe apps';
+			return '为团队提供应用托管服务';
 		},
 	},
 };

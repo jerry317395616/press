@@ -335,6 +335,14 @@ def _check_warranty_restrictions(
 def _is_plan_allowed_on_server(server: str, new_site_plan: dict) -> bool:
 	if new_site_plan.get("price_usd", 0) > 0:
 		return True
+	if (
+		new_site_plan.get("enabled")
+		and new_site_plan.get("name")
+		== frappe.db.get_single_value("Press Settings", "self_hosted_free_site_plan")
+		and frappe.db.get_value("Server", server, "provider") == "Generic"
+		and not new_site_plan.get("price_inr")
+	):
+		return True
 	if not (
 		new_site_plan.get("dedicated_server_plan", 0)
 		and frappe.db.get_value("Server", server, "team") == get_current_team()
@@ -379,6 +387,9 @@ def validate_plan(server: str, site: str, new_plan: str, is_new: bool = False) -
 		"Site Plan",
 		new_plan,
 		[
+			"name",
+			"enabled",
+			"price_inr",
 			"price_usd",
 			"dedicated_server_plan",
 			"restrict_based_on_dedicated_server_plan",
@@ -405,6 +416,15 @@ def validate_plan(server: str, site: str, new_plan: str, is_new: bool = False) -
 	frappe.throw("You are not allowed to use this plan")  # nosemgrep
 
 
+def validate_self_hosted_free_site_creation(site):
+	team = get_current_team(get_doc=True)
+	if not team.self_hosted_free_account:
+		return
+	free_plan = frappe.db.get_single_value("Press Settings", "self_hosted_free_site_plan")
+	if site.get("plan") != free_plan or site.get("server"):
+		frappe.throw("Free accounts can only create a site on the self-hosted free plan.")
+
+
 @frappe.whitelist()
 def new(site):
 	"""
@@ -421,6 +441,7 @@ def new(site):
 
 	selected_dedicated_server = site.get("server")
 	plan = site.get("plan")
+	validate_self_hosted_free_site_creation(site)
 	apps = site.get("apps", ["frappe"])
 	apps = [app for app in apps if app]
 
@@ -1462,6 +1483,10 @@ def get_site_plans():
 		# TODO: Remove later, temporary change because site plan has all document_type plans
 		filters={"document_type": "Site"},
 	)
+	team = get_current_team(get_doc=True)
+	if team.self_hosted_free_account:
+		free_plan = frappe.db.get_single_value("Press Settings", "self_hosted_free_site_plan")
+		plans = [plan for plan in plans if plan.name == free_plan]
 
 	# Fetch cloud_providers for each plan
 	for plan in plans:

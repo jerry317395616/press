@@ -26,6 +26,9 @@ except Exception:
 def checks():
 	if os.environ.get("CI"):
 		return
+	if platform.machine().lower() in {"aarch64", "arm64"} and not os.path.exists(CHROMEDRIVER_PATH):
+		click.secho("Skipping browser sanity checks: no ARM64 ChromeDriver is installed.", fg="yellow")
+		return
 
 	print("Running sanity checks...")
 

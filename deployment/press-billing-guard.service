@@ -1,0 +1,7 @@
+[Unit]
+Description=Keep Press billing and payment jobs disabled in self-hosted free mode
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/zyd/frappe/press-bench/sites
+ExecStart=/home/zyd/frappe/press-bench/env/bin/python /home/zyd/frappe/press-deployment/disable_press_billing_jobs.py

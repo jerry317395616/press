@@ -1,0 +1,7 @@
+[Unit]
+Description=Copy Press site backups from app VM to the local host
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/home/zyd/frappe/press-deployment/sync_press_local_backups.sh

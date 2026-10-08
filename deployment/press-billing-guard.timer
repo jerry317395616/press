@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Press billing jobs hourly while paid hosting is disabled
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+Unit=press-billing-guard.service
+
+[Install]
+WantedBy=timers.target

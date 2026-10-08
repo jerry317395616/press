@@ -840,6 +840,9 @@ class BaseServer(Document, TagHelpers):
 					"certificate_full_chain": certificate.full_chain,
 					"certificate_intermediate_chain": certificate.intermediate_chain,
 					"docker_depends_on_mounts": self.docker_depends_on_mounts,
+					"docker_registry_url": frappe.db.get_single_value(
+						"Press Settings", "docker_registry_url"
+					),
 					"db_port": database_server.db_port,
 					"agent_repository_branch_or_commit_ref": self.get_agent_repository_branch(),
 					"agent_update_args": " --skip-repo-setup=true",
@@ -3714,6 +3717,9 @@ class Server(BaseServer):
 					"certificate_intermediate_chain": certificate.intermediate_chain,
 					"docker_depends_on_mounts": self.docker_depends_on_mounts,
 					"db_port": db_port,
+					"docker_registry_url": frappe.db.get_single_value(
+						"Press Settings", "docker_registry_url"
+					),
 					"agent_repository_branch_or_commit_ref": self.get_agent_repository_branch(),
 					"agent_update_args": " --skip-repo-setup=true",
 					"nat_gateway_ip": self.get_nat_gateway_ip(),

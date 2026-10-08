@@ -9,7 +9,16 @@
 - name: Login to Docker Registry
   become: yes
   become_user: frappe
-  command: "docker login -u {{ registry_username }} -p {{ registry_password }} {{ registry_url }}"
+  command:
+    argv:
+      - docker
+      - login
+      - --username
+      - "{{ registry_username }}"
+      - --password-stdin
+      - "{{ registry_url }}"
+    stdin: "{{ registry_password }}"
+  no_log: true
 
 - name: Copy home directory from SSH Image
   become: yes

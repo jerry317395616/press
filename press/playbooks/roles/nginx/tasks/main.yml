@@ -47,8 +47,9 @@
 
 - name: Clone NGINX VTS Module Repository
   git:
-    repo: https://github.com/vozlt/nginx-module-vts
+    repo: "{{ 'git://10.144.133.1:9418/nginx-module-vts.git' if cloud_provider == 'Generic' else 'https://github.com/vozlt/nginx-module-vts' }}"
     dest: /opt/nginx-modules/nginx-module-vts
+    depth: 1
 
 - name: Extract NGINX Compile Flags
   shell: "nginx -V 2>&1 | grep -oP '\\--with-[-\\w]* '  | tr '\\n' ' '"

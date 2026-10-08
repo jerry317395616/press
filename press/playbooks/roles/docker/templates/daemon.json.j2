@@ -7,5 +7,8 @@
     "no-new-privileges": true,
     "userland-proxy": false,
     "max-concurrent-downloads": 5,
+{% if cloud_provider | default("") == "Generic" and docker_registry_url | default("") %}
+    "insecure-registries": ["{{ docker_registry_url }}"],
+{% endif %}
     "mtu": {{ 1450 if cloud_provider | default("") == "Hetzner" else 1500 }}
 }

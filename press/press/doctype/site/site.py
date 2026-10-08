@@ -719,13 +719,25 @@ class Site(Document, TagHelpers):
 				as_dict=True,
 			)
 			is_site_on_public_server = frappe.db.get_value("Server", self.server, "public")
+			self_hosted_free_account = frappe.db.get_value("Team", self.team, "self_hosted_free_account")
+			self_hosted_free_plan = frappe.db.get_single_value("Press Settings", "self_hosted_free_site_plan")
+			if self_hosted_free_account and self.subscription_plan != self_hosted_free_plan:
+				frappe.throw("Free accounts can only use the self-hosted free plan.")
 
 			# Don't allow free plan for non-system users
 			if not is_system_user():
 				is_plan_free = (plan.price_inr == 0 or plan.price_usd == 0) and not (
 					plan.dedicated_server_plan or plan.is_trial_plan
 				)
-				if is_plan_free:
+				allowed_free_plan = (
+					self_hosted_free_account
+					and self.subscription_plan == self_hosted_free_plan
+					and plan.price_inr == 0
+					and plan.price_usd == 0
+					and is_site_on_public_server
+					and frappe.db.get_value("Server", self.server, "provider") == "Generic"
+				)
+				if is_plan_free and not allowed_free_plan:
 					frappe.throw("You can't select a free plan!")  # nosemgrep
 
 			# If site is on public server, don't allow unlimited plans
@@ -3362,12 +3374,15 @@ class Site(Document, TagHelpers):
 			bench_query = bench_query.orderby(servers.use_for_new_sites, order=frappe.qb.desc)
 
 		if release_group_names:
+			# ``Site`` no longer stores a separate ``version`` field. The selected
+			# release group's version is the compatibility constraint for its benches.
+			site_version = frappe.db.get_value("Release Group", self.group, "version")
 			groups = frappe.qb.DocType("Release Group")
 			bench_query = (
 				bench_query.where(benches.group.isin(release_group_names))
 				.join(groups)
 				.on(benches.group == groups.name)
-				.where(groups.version == self.version)
+				.where(groups.version == site_version)
 			)
 		else:
 			restricted_release_group_names = frappe.db.get_all(

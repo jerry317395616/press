@@ -19,6 +19,7 @@
 		"is_code_server_user",
 		"is_frappe_compute_internal_user",
 		"free_account",
+		"self_hosted_free_account",
 		"via_erpnext",
 		"enforce_2fa",
 		"extend_payment_due_suspension",
@@ -179,6 +180,13 @@
 			"in_standard_filter": 1,
 			"label": "Free Account",
 			"search_index": 1
+		},
+		{
+			"default": "0",
+			"fieldname": "self_hosted_free_account",
+			"fieldtype": "Check",
+			"hidden": 1,
+			"label": "Self-Hosted Free Account"
 		},
 		{
 			"fieldname": "address_html",

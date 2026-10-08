@@ -1,5 +1,4 @@
-# syntax = docker/dockerfile:experimental
-FROM ubuntu:20.04
+FROM public.ecr.aws/docker/library/ubuntu:20.04
 
 ENV LANG C.UTF-8
 ENV DEBIAN_FRONTEND noninteractive

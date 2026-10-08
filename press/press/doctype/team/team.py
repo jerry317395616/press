@@ -241,6 +241,7 @@ class Team(Document):
 		doc.billing_info = self.billing_info()
 		doc.billing_details = self.billing_details()
 		doc.trial_sites = self.get_trial_sites()
+		doc.dashboard_sites = self.get_home_data()["sites"]
 		doc.pending_site_request = self.get_pending_saas_site_request()
 		doc.payment_method = frappe.db.get_value(
 			"Stripe Payment Method",
@@ -465,6 +466,13 @@ class Team(Document):
 		team.apply_limits = 1
 		team.spending_limit = 100  # default spending limit for new teams, can be updated later by team admin
 		team.tier = "Beginner"
+		team.self_hosted_free_account = bool(
+			frappe.db.get_single_value("Press Settings", "self_hosted_free_site_plan")
+			and not via_erpnext
+			and not account_request.is_saas_signup()
+			and not account_request.invited_by_parent_team
+		)
+		team.free_account = team.self_hosted_free_account
 		team.insert(ignore_permissions=True, ignore_links=True)
 		team.append("team_members", {"user": user.name})
 		if account_request.invited_by_parent_team:
@@ -475,12 +483,17 @@ class Team(Document):
 
 		team.save(ignore_permissions=True)
 
-		team.create_stripe_customer()
+		if not team.self_hosted_free_account:
+			team.create_stripe_customer()
 
 		if account_request.referrer_id:
 			team.create_referral_bonus(account_request.referrer_id)
 
-		if not team.via_erpnext and not account_request.invited_by_parent_team:
+		if (
+			not team.self_hosted_free_account
+			and not team.via_erpnext
+			and not account_request.invited_by_parent_team
+		):
 			team.create_upcoming_invoice()
 
 		account_request.stitch_pulse_identity(team.name)
@@ -1324,6 +1337,11 @@ class Team(Document):
 			why = "You have exceeded your spending limit. Please contact support to increase your limits."
 			return (False, why)
 
+		if self.self_hosted_free_account:
+			if frappe.db.count("Site", {"team": self.name, "status": ("!=", "Archived")}) >= 1:
+				return (False, "A free account can host one active site.")
+			return allow
+
 		if self.free_account or self.parent_team or self.billing_team:
 			return allow
 
@@ -1400,6 +1418,8 @@ class Team(Document):
 			frappe.throw(f"You need to have {threshold} {self.currency} worth of credits to create a server.")
 
 	def can_install_paid_apps(self):
+		if self.self_hosted_free_account:
+			return False
 		if self.free_account or self.billing_team or self.payment_mode:
 			return True
 

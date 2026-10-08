@@ -3,11 +3,19 @@
   become: yes
   become_user: frappe
   git:
-    repo: '{{ agent_repository_url }}'
+    repo: "{{ 'git://10.144.133.1:9418/agent.git' if cloud_provider == 'Generic' else agent_repository_url }}"
     dest: /home/frappe/agent/repo
     remote: upstream
     version: '{% if agent_branch is defined and agent_branch is truthy %} {{ agent_branch }} {% else %} master {% endif %}'
     update: yes
+    depth: 1
+
+- name: Use available Python for Generic build syntax validation
+  replace:
+    path: /home/frappe/agent/repo/agent/build_utils/validations.py
+    regexp: 'return "/usr/bin/python3\.14"'
+    replace: 'return _get_server_python_path()'
+  when: cloud_provider | default('') == 'Generic'
 
 - name: Install Agent
   become: yes

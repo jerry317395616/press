@@ -16,6 +16,7 @@ const AlertBudgetThreshold = defineAsyncComponent(() => import('./AlertBudgetThr
 const CustomAlerts = defineAsyncComponent(() => import('./CustomAlerts.vue'))
 
 const team = getTeam()
+const selfHostedFreeMode = Boolean(window.self_hosted_free_mode)
 const isAfterFirstWeek = dayjs().date() > 6
 
 const isCardExpired = computed(() => {
@@ -26,7 +27,10 @@ const isCardExpired = computed(() => {
 })
 const isMandateNotSet = computed(() => !team.doc?.payment_method?.stripe_mandate_id)
 
-const getAmountDue = createResource({ url: 'press.api.billing.total_unpaid_amount', auto: true })
+const getAmountDue = createResource({
+	url: 'press.api.billing.total_unpaid_amount',
+	auto: !selfHostedFreeMode,
+})
 const hasUnpaidInvoices = computed(() => getAmountDue.data)
 
 const getUnpaidInvoices = createResource({
@@ -38,7 +42,7 @@ const getUnpaidInvoices = createResource({
 		order_by: 'creation desc',
 		limit: 1,
 	},
-	auto: () => team.doc?.payment_mode === 'Card' && isAfterFirstWeek,
+	auto: () => !selfHostedFreeMode && team.doc?.payment_mode === 'Card' && isAfterFirstWeek,
 })
 const cardPaymentFailure = computed(() => {
 	const invoices = getUnpaidInvoices.data
@@ -54,7 +58,7 @@ const cardPaymentFailure = computed(() => {
 
 const getCurrentBillingAmount = createResource({
 	url: 'press.api.billing.get_current_billing_amount',
-	auto: true,
+	auto: !selfHostedFreeMode,
 	cache: 'Current Billing Amount',
 })
 const displayBudgetAlert = computed(() => {
@@ -70,7 +74,7 @@ const displayBudgetAlert = computed(() => {
 </script>
 
 <template>
-	<template v-if="team.doc">
+	<template v-if="team.doc && !selfHostedFreeMode">
 		<AlertAddPaymentMode class="mb-5" v-if="!team.doc.payment_mode && !team.doc.parent_team" />
 		<AlertCardExpired class="mb-5" v-if="isCardExpired && team.doc?.payment_mode == 'Card'" />
 		<AlertAddressDetails

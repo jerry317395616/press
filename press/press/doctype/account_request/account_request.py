@@ -304,7 +304,11 @@ class AccountRequest(Document):
 				inline_images=inline_images,
 			)
 		except frappe.ValidationError:
-			pass
+			if (
+				frappe.db.get_single_value("Press Settings", "self_hosted_free_site_plan")
+				and not self.is_saas_signup()
+			):
+				frappe.throw("验证码邮件发送失败。请联系管理员。")
 		except Exception as e:
 			log_error(
 				"Error sending verification email",
@@ -312,6 +316,11 @@ class AccountRequest(Document):
 				reference_doctype=self.doctype,
 				reference_name=self.name,
 			)
+			if (
+				frappe.db.get_single_value("Press Settings", "self_hosted_free_site_plan")
+				and not self.is_saas_signup()
+			):
+				frappe.throw("验证码邮件发送失败。请联系管理员。")
 
 	def get_verification_url(self):
 		return get_url(f"/dashboard/setup-account/{self.request_key}")

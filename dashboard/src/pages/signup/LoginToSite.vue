@@ -223,7 +223,10 @@ export default {
 				if (reachable) break
 				await new Promise((resolve) => setTimeout(resolve, 3000))
 			}
-			this.$resources.siteRequest.getLoginSid.submit()
+			// The Press welcome page is the account's control plane.  Keep the
+			// site login endpoint available for the manual trial flow, but a
+			// normal signup should land in the welcome page after provisioning.
+			window.location.href = '/dashboard/'
 		},
 	},
 }

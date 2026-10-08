@@ -112,12 +112,17 @@
 							class="mt-4"
 							:message="$resources.acceptInvite.error"
 						/>
+						<ErrorMessage
+							class="mt-4"
+							:message="$resources.autoProvisionDefaultSite.error"
+						/>
 						<Button
 							class="mt-4"
 							variant="solid"
 							:loading="
 								$resources.setupAccount.loading ||
-								$resources.acceptInvite.loading
+								$resources.acceptInvite.loading ||
+								$resources.autoProvisionDefaultSite.loading
 							"
 							type="submit"
 						>
@@ -253,16 +258,35 @@ export default {
 					share_details_consent:
 						this.showLeadsConsentCheckbox && this.shareDetailsConsent,
 				},
-				onSuccess() {
+				onSuccess(accountRequest) {
 					let path = '/dashboard/create-site/app-selector';
 					if (this.saasProduct) {
 						path = `/dashboard/create-site/${this.saasProduct.name}/setup`;
 					}
 					if (this.isInvitation) {
 						path = '/dashboard/sites';
+						window.location.href = path;
+						return;
+					}
+					if (!this.saasProduct) {
+						this.$resources.autoProvisionDefaultSite.submit(
+							{ account_request: accountRequest },
+							{
+								onSuccess: (requestName) => {
+									window.location.href =
+										`/dashboard/create-site/frappe/login-to-site?product_trial_request=${encodeURIComponent(requestName)}`;
+								},
+							},
+						);
+						return;
 					}
 					window.location.href = path;
 				},
+			};
+		},
+		autoProvisionDefaultSite() {
+			return {
+				url: 'press.api.account.auto_provision_default_site',
 			};
 		},
 		is2FAEnabled() {

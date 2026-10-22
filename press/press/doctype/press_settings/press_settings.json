@@ -154,8 +154,11 @@
 		"telegram_chat_id",
 		"column_break_65",
 		"telegram_bot_token",
+		"telegram_webhook_secret",
+		"set_telegram_webhook",
 		"mailgun_settings_section",
 		"mailgun_api_key",
+		"mailgun_webhook_signing_key",
 		"root_domain",
 		"column_break_117",
 		"default_outgoing_id",
@@ -839,8 +842,19 @@
 		},
 		{
 			"fieldname": "telegram_bot_token",
-			"fieldtype": "Data",
+			"fieldtype": "Password",
 			"label": "Telegram Bot Token"
+		},
+		{
+			"fieldname": "telegram_webhook_secret",
+			"fieldtype": "Password",
+			"label": "Telegram Webhook Secret",
+			"read_only": 1
+		},
+		{
+			"fieldname": "set_telegram_webhook",
+			"fieldtype": "Button",
+			"label": "Set Telegram Webhook"
 		},
 		{
 			"fieldname": "mailgun_settings_section",
@@ -849,8 +863,14 @@
 		},
 		{
 			"fieldname": "mailgun_api_key",
-			"fieldtype": "Data",
+			"fieldtype": "Password",
 			"label": "Api Key"
+		},
+		{
+			"description": "Mailgun signs every webhook event with this key. Find it under Sending, Webhooks.",
+			"fieldname": "mailgun_webhook_signing_key",
+			"fieldtype": "Password",
+			"label": "Webhook Signing Key"
 		},
 		{
 			"fieldname": "root_domain",
@@ -1910,7 +1930,7 @@
 	],
 	"issingle": 1,
 	"links": [],
-	"modified": "2026-09-11 13:26:41.047658",
+	"modified": "2026-10-22 10:00:00.000000",
 	"modified_by": "Administrator",
 	"module": "Press",
 	"name": "Press Settings",

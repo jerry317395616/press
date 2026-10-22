@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 DEFAULT_GITHUB_REDIRECT_PATH = "/dashboard"
 GITHUB_OAUTH_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
-GITHUB_OAUTH_STATE_MAX_AGE = timedelta(minutes=10)
+GITHUB_OAUTH_STATE_MAX_AGE = timedelta(minutes=30)
 
 
 class GithubFetchError(Exception):
@@ -193,6 +193,12 @@ def get_access_token(installation_id: str | None = None):
 
 
 @frappe.whitelist()
+def get_installation_url(redirect_url: str | None = None):
+	# Minted on click, so the state's validity window starts when the user leaves for GitHub
+	return get_installation_data(get_current_team(), redirect_url)
+
+
+@frappe.whitelist()
 def clear_token_and_get_installation_url(redirect_url: str | None = None):
 	team = get_current_team()
 	clear_current_team_access_token(team)
@@ -205,17 +211,15 @@ def clear_current_team_access_token(team: str | None = None):
 
 
 @frappe.whitelist()
-def options(redirect_url: str | None = None):
+def options():
 	team = get_current_team()
 	token = frappe.db.get_value("Team", team, "github_access_token")
-	installation_data = get_installation_data(team, redirect_url)
 	available_installations = installations(token) if token else []
 	if not available_installations and frappe.conf.get("github_app_installation_fallback"):
 		available_installations = app_installations()
 
 	return {
 		"authorized": bool(token or available_installations),
-		**installation_data,
 		"installations": available_installations,
 	}
 
